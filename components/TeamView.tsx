@@ -28,13 +28,15 @@ const MemberCard: React.FC<{ member: User, tasks: Task[], logs: Log[] }> = ({ me
 
         logs.forEach(log => {
             if (log.userId === member.id && activity.has(log.date)) {
-                activity.set(log.date, (activity.get(log.date) || 0) + log.hours);
+                // Fix: The 'hours' property does not exist on the Log type.
+                // Changed to count the number of logs per day instead.
+                activity.set(log.date, (activity.get(log.date) || 0) + 1);
             }
         });
 
-        return Array.from(activity.entries()).map(([date, hours]) => ({
+        return Array.from(activity.entries()).map(([date, logCount]) => ({
             date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-            hours,
+            logCount,
         }));
     }, [logs, member.id]);
 
@@ -73,9 +75,11 @@ const MemberCard: React.FC<{ member: User, tasks: Task[], logs: Log[] }> = ({ me
                         <Tooltip
                             contentStyle={{ background: '#fff', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px' }}
                             labelStyle={{ fontWeight: 'bold' }}
-                            formatter={(value) => [`${value} hours`, 'Logged']}
+                            // Fix: Updated formatter to reflect log count instead of hours.
+                            formatter={(value: number) => [`${value} ${value === 1 ? 'log' : 'logs'}`, 'Logged']}
                         />
-                        <Bar dataKey="hours" fill="#00D98B" radius={[4, 4, 0, 0]} />
+                        {/* Fix: Updated dataKey to use logCount instead of non-existent hours. */}
+                        <Bar dataKey="logCount" fill="#00D98B" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

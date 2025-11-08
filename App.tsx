@@ -65,6 +65,18 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     return [];
   }, [users, appCurrentUser, managedTeamMembers]);
 
+  const membersForDailyStatus = useMemo(() => {
+    if (appCurrentUser.role === UserRole.Executive) {
+        // Executives see all members and managers
+        return users.filter(u => u.role === UserRole.Member || u.role === UserRole.Manager);
+    }
+    if (appCurrentUser.role === UserRole.Manager) {
+        // Managers see their team members
+        return managedTeamMembers;
+    }
+    return []; // No one for team members to see
+  }, [users, appCurrentUser, managedTeamMembers]);
+
   const handleProjectSelect = (id: string) => {
     setSelectedProjectId(id);
     setCurrentPage('projects');
@@ -198,6 +210,18 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     setNotifications(prev => [...prev, ...newNotifications]);
     setIsNotificationModalOpen(false);
   };
+  
+  const handleSendReminder = (recipientId: string) => {
+    const reminderNotification: Notification = {
+        id: `n-reminder-${Date.now()}-${recipientId}`,
+        recipientId: recipientId,
+        senderId: appCurrentUser.id,
+        message: 'Please remember to submit your daily log for today.',
+        timestamp: new Date().toISOString(),
+        isRead: false,
+    };
+    setNotifications(prev => [...prev, reminderNotification]);
+  };
 
   const handleMarkNotificationAsRead = (notificationId: string | 'all') => {
     setNotifications(currentNotifications =>
@@ -286,6 +310,8 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
                     currentUser={appCurrentUser} 
                     onProjectSelect={handleProjectSelect} 
                     onOpenEditModal={handleOpenEditProjectModal}
+                    membersForDailyStatus={membersForDailyStatus}
+                    onSendReminder={handleSendReminder}
                    />;
     }
   };
@@ -313,6 +339,8 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             onClose={() => setIsLogModalOpen(false)}
             onSubmit={handleLogSubmit}
             projects={userProjects}
+            users={users}
+            currentUserId={appCurrentUser.id}
         />
       )}
       {appCurrentUser.role === UserRole.Manager && (

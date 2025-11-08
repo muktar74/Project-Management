@@ -10,8 +10,10 @@ export const summarizeLogs = async (logs: Log[], users: User[], projectName: str
 
   const formattedLogs = logs.map(log => {
     const userName = userMap.get(log.userId) || 'Unknown User';
-    const blockerInfo = log.blockers ? ` | Blocker: ${log.blockers}` : '';
-    return `- ${log.date} by ${userName} (${log.hours}h): ${log.task}${blockerInfo}`;
+    // Fix: Replaced non-existent `log.blockers` with `log.challenges`.
+    const challengesInfo = log.challenges ? ` | Challenges: ${log.challenges}` : '';
+    // Fix: Replaced non-existent `log.hours` and `log.task` with `log.yesterdaysTasks`.
+    return `- ${log.date} by ${userName}: ${log.yesterdaysTasks}${challengesInfo}`;
   }).join('\n');
 
   const prompt = `

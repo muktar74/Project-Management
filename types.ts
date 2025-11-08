@@ -48,9 +48,10 @@ export interface Log {
   projectId: string;
   userId: string;
   date: string;
-  hours: number;
-  task: string;
-  blockers?: string;
+  yesterdaysTasks: string;
+  todaysPlan: string;
+  challenges?: string;
+  collaboratorIds?: string[];
 }
 
 export enum TaskStatus {

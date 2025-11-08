@@ -1,7 +1,8 @@
-import React from 'react';
-import { Project, Log, User, ProjectStatus, Task, TaskStatus } from '../types';
+import React, { useMemo } from 'react';
+import { Project, Log, User, ProjectStatus, Task, TaskStatus, UserRole } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProjectCard from './ProjectCard';
+import { EnvelopeIcon } from './icons';
 
 type DashboardProps = {
   projects: Project[];
@@ -11,6 +12,8 @@ type DashboardProps = {
   currentUser: User;
   onProjectSelect: (id: string) => void;
   onOpenEditModal: (project: Project) => void;
+  membersForDailyStatus: User[];
+  onSendReminder: (recipientId: string) => void;
 };
 
 const StatCard = ({ title, value, subtext }: { title: string, value: string | number, subtext: string }) => (
@@ -23,7 +26,63 @@ const StatCard = ({ title, value, subtext }: { title: string, value: string | nu
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, currentUser, onProjectSelect, onOpenEditModal }) => {
+const DailyLogStatus: React.FC<{
+    logs: Log[],
+    members: User[],
+    onSendReminder: (recipientId: string) => void,
+}> = ({ logs, members, onSendReminder }) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const submittedUserIds = new Set(
+        logs.filter(log => log.date === todayStr).map(log => log.userId)
+    );
+
+    const submitted = members.filter(m => submittedUserIds.has(m.id));
+    const pending = members.filter(m => !submittedUserIds.has(m.id));
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-md animate-slide-in-up">
+            <h3 className="text-lg font-semibold text-neutral-800 mb-4">Daily Log Status (Today)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 className="font-semibold text-green-600 mb-2">Submitted ({submitted.length})</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        {submitted.map(user => (
+                            <div key={user.id} className="flex items-center">
+                                <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full mr-2"/>
+                                <span className="text-sm text-neutral-700">{user.name}</span>
+                            </div>
+                        ))}
+                        {submitted.length === 0 && <p className="text-xs text-neutral-400">No submissions yet.</p>}
+                    </div>
+                </div>
+                <div>
+                    <h4 className="font-semibold text-yellow-600 mb-2">Pending ({pending.length})</h4>
+                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        {pending.map(user => (
+                            <div key={user.id} className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                    <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full mr-2"/>
+                                    <span className="text-sm text-neutral-700">{user.name}</span>
+                                </div>
+                                <button 
+                                    onClick={() => onSendReminder(user.id)}
+                                    title={`Send reminder to ${user.name}`}
+                                    className="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-brand-primary transition-colors"
+                                >
+                                    <EnvelopeIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
+                        {pending.length === 0 && <p className="text-xs text-neutral-400">Everyone has submitted!</p>}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, currentUser, onProjectSelect, onOpenEditModal, membersForDailyStatus, onSendReminder }) => {
     const totalProjects = projects.length;
     const completedProjects = projects.filter(p => p.status === ProjectStatus.Completed).length;
     const onTrackProjects = projects.filter(p => p.status === ProjectStatus.OnTrack).length;
@@ -35,13 +94,20 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, cur
         .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
         .slice(0, 5);
         
-    const projectHoursData = projects.map(project => {
-        const projectLogs = logs.filter(log => log.projectId === project.id);
-        const totalHours = projectLogs.reduce((acc, log) => acc + log.hours, 0);
-        return { name: project.name, hours: totalHours };
-    });
+    const projectHoursData = useMemo(() => {
+        const projectLogHours = projects.map(project => {
+            // This calculation is no longer possible as 'hours' is removed.
+            // I'll count number of log entries instead.
+            const logCount = logs.filter(log => log.projectId === project.id).length;
+            return { name: project.name, "logs": logCount };
+        });
+        return projectLogHours;
+    }, [projects, logs]);
+
 
     const getProjectById = (id: string) => projects.find(p => p.id === id);
+
+    const isManagerOrExec = currentUser.role === UserRole.Manager || currentUser.role === UserRole.Executive;
 
     return (
         <div className="p-4 sm:p-8 space-y-8 animate-fade-in">
@@ -59,7 +125,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, cur
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md animate-slide-in-up">
-                    <h3 className="text-lg font-semibold text-neutral-800 mb-4">Project Hours Distribution</h3>
+                    <h3 className="text-lg font-semibold text-neutral-800 mb-4">Project Log Activity</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={projectHoursData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -67,7 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, cur
                             <YAxis tick={{ fontSize: 12 }} />
                             <Tooltip wrapperClassName="rounded-md shadow-lg bg-white" />
                             <Legend />
-                            <Bar dataKey="hours" fill="#00D98B" name="Total Hours Logged" />
+                            <Bar dataKey="logs" fill="#00D98B" name="Number of Logs" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -93,6 +159,10 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, cur
                     </ul>
                 </div>
             </div>
+            
+            {isManagerOrExec && membersForDailyStatus.length > 0 && (
+                <DailyLogStatus logs={logs} members={membersForDailyStatus} onSendReminder={onSendReminder} />
+            )}
             
             <div>
               <h3 className="text-xl font-semibold text-neutral-800 mb-4">Your Projects</h3>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Log, User, Project } from '../types';
-import { CalendarIcon, ExclamationIcon } from './icons';
+import { CalendarIcon, ExclamationIcon, UsersIcon } from './icons';
 
 type DailyLogsViewProps = {
   logs: Log[];
@@ -8,43 +8,68 @@ type DailyLogsViewProps = {
   projects: Project[];
 };
 
-// Fix: Explicitly type LogItem as a React.FC to allow React-specific props like 'key' to be passed without causing a TypeScript error.
-const LogItem: React.FC<{ log: Log, user?: User, project?: Project }> = ({ log, user, project }) => (
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-neutral-200 flex flex-col sm:flex-row sm:space-x-4 animate-slide-in-up">
-        <div className="flex items-center mb-3 sm:mb-0">
-          <img src={user?.avatar} alt={user?.name} className="w-10 h-10 rounded-full flex-shrink-0" />
-          <div className="sm:hidden ml-3">
-              <p className="font-bold text-neutral-800">{user?.name}</p>
-              <p className="text-sm text-brand-primary font-semibold">{project?.name}</p>
-          </div>
-        </div>
-        <div className="flex-1">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-                <div className="hidden sm:block">
-                    <span className="font-bold text-neutral-800">{user?.name}</span>
-                    <span className="text-sm text-neutral-500 mx-2">•</span>
-                    <span className="text-sm text-brand-primary font-semibold">{project?.name}</span>
-                </div>
-                <div className="text-sm text-neutral-500 flex items-center">
-                    <CalendarIcon className="w-4 h-4 mr-1.5 text-neutral-400" />
-                    {new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                    <span className="text-neutral-300 mx-2">|</span>
-                    <span className="font-semibold text-neutral-700">{log.hours} hours</span>
-                </div>
-            </div>
-            <p className="text-neutral-700 mt-2 text-sm">{log.task}</p>
-            {log.blockers && (
-                <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-md flex items-start">
-                    <ExclamationIcon className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <h4 className="font-semibold text-yellow-800 text-sm">Blocker</h4>
-                        <p className="text-yellow-700 text-sm">{log.blockers}</p>
-                    </div>
-                </div>
-            )}
-        </div>
+const LogDetailSection: React.FC<{ title: string, content: string }> = ({ title, content }) => (
+    <div className="mt-3">
+        <h4 className="font-semibold text-neutral-600 text-sm">{title}</h4>
+        <p className="text-neutral-800 mt-1 text-sm whitespace-pre-wrap">{content}</p>
     </div>
 );
+
+const LogItem: React.FC<{ log: Log, user?: User, project?: Project, userMap: Map<string, User> }> = ({ log, user, project, userMap }) => {
+    const collaborators = useMemo(() => {
+        return (log.collaboratorIds || []).map(id => userMap.get(id)).filter(Boolean) as User[];
+    }, [log.collaboratorIds, userMap]);
+
+    return (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-neutral-200 flex flex-col sm:flex-row sm:space-x-4 animate-slide-in-up">
+            <div className="flex items-center mb-3 sm:mb-0 sm:items-start">
+              <img src={user?.avatar} alt={user?.name} className="w-10 h-10 rounded-full flex-shrink-0" />
+              <div className="sm:hidden ml-3">
+                  <p className="font-bold text-neutral-800">{user?.name}</p>
+                  <p className="text-sm text-brand-primary font-semibold">{project?.name}</p>
+              </div>
+            </div>
+            <div className="flex-1">
+                <div className="flex justify-between items-start flex-wrap gap-2">
+                    <div className="hidden sm:block">
+                        <span className="font-bold text-neutral-800">{user?.name}</span>
+                        <span className="text-sm text-neutral-500 mx-2">•</span>
+                        <span className="text-sm text-brand-primary font-semibold">{project?.name}</span>
+                    </div>
+                    <div className="text-sm text-neutral-500 flex items-center">
+                        <CalendarIcon className="w-4 h-4 mr-1.5 text-neutral-400" />
+                        {new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </div>
+                </div>
+
+                <LogDetailSection title="Yesterday's Accomplishments" content={log.yesterdaysTasks} />
+                <LogDetailSection title="Today's Plan" content={log.todaysPlan} />
+
+                {log.challenges && (
+                    <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-md flex items-start">
+                        <ExclamationIcon className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <h4 className="font-semibold text-yellow-800 text-sm">Challenges / Blockers</h4>
+                            <p className="text-yellow-700 text-sm whitespace-pre-wrap">{log.challenges}</p>
+                        </div>
+                    </div>
+                )}
+
+                {collaborators.length > 0 && (
+                     <div className="mt-3 flex items-center">
+                        <UsersIcon className="w-5 h-5 text-neutral-400 mr-2"/>
+                        <span className="text-sm font-medium text-neutral-600 mr-2">Collaborators:</span>
+                        <div className="flex -space-x-2">
+                            {collaborators.map(c => (
+                                <img key={c.id} src={c.avatar} alt={c.name} title={c.name} className="w-7 h-7 rounded-full border-2 border-white"/>
+                            ))}
+                        </div>
+                     </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 const DailyLogsView: React.FC<DailyLogsViewProps> = ({ logs, users, projects }) => {
     const [selectedDate, setSelectedDate] = useState('');
@@ -115,7 +140,8 @@ const DailyLogsView: React.FC<DailyLogsViewProps> = ({ logs, users, projects }) 
                             key={log.id} 
                             log={log} 
                             user={userMap.get(log.userId)} 
-                            project={projectMap.get(log.projectId)} 
+                            project={projectMap.get(log.projectId)}
+                            userMap={userMap}
                         />
                     ))
                 ) : (

@@ -95,14 +95,14 @@ export const PROJECTS: Project[] = [
 ];
 
 export const LOGS: Log[] = [
-    { id: 'l1', projectId: 'p1', userId: 'u2', date: '2024-07-28', hours: 7, task: 'Developed the funds transfer API endpoint.', blockers: 'Waiting for final security review from the compliance team.' },
-    { id: 'l2', projectId: 'p1', userId: 'u3', date: '2024-07-28', hours: 8, task: 'Finalized UI mockups for the account summary page.', blockers: '' },
-    { id: 'l3', projectId: 'p2', userId: 'u4', date: '2024-07-28', hours: 6, task: 'Analyzed data migration scripts for customer accounts.', blockers: 'Source database performance is slower than expected.' },
-    { id: 'l4', projectId: 'p2', userId: 'u5', date: '2024-07-28', hours: 7.5, task: 'Configured the test environment for the new CBS.', blockers: '' },
-    { id: 'l5', projectId: 'p3', userId: 'u2', date: '2024-07-28', hours: 8, task: 'Integrated the third-party ID verification SDK.', blockers: '' },
-    { id: 'l6', projectId: 'p1', userId: 'u2', date: '2024-07-29', hours: 8, task: 'Refactored authentication module based on code review feedback.', blockers: '' },
-    { id: 'l7', projectId: 'p1', userId: 'u3', date: '2024-07-29', hours: 6, task: 'Conducted usability testing session for the new mobile app prototype.', blockers: 'Recruitment of test participants is slightly behind schedule.' },
-    { id: 'l8', projectId: 'p2', userId: 'u4', date: '2024-07-29', hours: 8, task: 'Optimized data migration scripts, improving performance by 15%.', blockers: '' },
+    { id: 'l1', projectId: 'p1', userId: 'u2', date: '2024-07-28', yesterdaysTasks: 'Developed the funds transfer API endpoint.', todaysPlan: 'Integrate API with the mobile app frontend.', challenges: 'Waiting for final security review from the compliance team.', collaboratorIds: ['u3'] },
+    { id: 'l2', projectId: 'p1', userId: 'u3', date: '2024-07-28', yesterdaysTasks: 'Finalized UI mockups for the account summary page.', todaysPlan: 'Create reusable UI components based on mockups.', challenges: '' },
+    { id: 'l3', projectId: 'p2', userId: 'u4', date: '2024-07-28', yesterdaysTasks: 'Analyzed data migration scripts for customer accounts.', todaysPlan: 'Begin optimizing the migration scripts.', challenges: 'Source database performance is slower than expected.', collaboratorIds: ['u5'] },
+    { id: 'l4', projectId: 'p2', userId: 'u5', date: '2024-07-28', yesterdaysTasks: 'Configured the test environment for the new CBS.', todaysPlan: 'Run initial configuration tests and benchmarks.', challenges: '', collaboratorIds: ['u4'] },
+    { id: 'l5', projectId: 'p3', userId: 'u2', date: '2024-07-28', yesterdaysTasks: 'Integrated the third-party ID verification SDK.', todaysPlan: 'Test the SDK with various ID types.', challenges: '' },
+    { id: 'l6', projectId: 'p1', userId: 'u2', date: '2024-07-29', yesterdaysTasks: 'Refactored authentication module based on code review feedback.', todaysPlan: 'Deploy updated module to staging for QA.', challenges: '', collaboratorIds: ['u3'] },
+    { id: 'l7', projectId: 'p1', userId: 'u3', date: '2024-07-29', yesterdaysTasks: 'Conducted usability testing session for the new mobile app prototype.', todaysPlan: 'Synthesize feedback and create a report of findings.', challenges: 'Recruitment of test participants is slightly behind schedule.' },
+    { id: 'l8', projectId: 'p2', userId: 'u4', date: '2024-07-29', yesterdaysTasks: 'Optimized data migration scripts, improving performance by 15%.', todaysPlan: 'Prepare for a full test migration run over the weekend.', challenges: '', collaboratorIds: ['u5'] },
 ];
 
 export const TASKS: Task[] = [
