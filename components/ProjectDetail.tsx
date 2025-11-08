@@ -15,7 +15,7 @@ type ProjectDetailProps = {
   currentUser: User;
   onBack: () => void;
   onTaskMove: (draggedTaskId: string, targetTaskId: string | null, newStatus: TaskStatus) => void;
-  onTaskCreate: (taskData: Omit<Task, 'id' | 'status'>) => void;
+  onTaskCreate: (taskData: Omit<Task, 'id' | 'status' | 'order'>) => void;
   onProjectUpdate: (project: Project) => void;
   onProjectDelete: (projectId: string) => void;
   onTaskDelete: (taskId: string) => void;
@@ -210,8 +210,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
     try {
       const summary = await summarizeLogs(projectLogs, users, project.name);
       setAiSummary(summary);
-    } catch (err)
- {
+    } catch (err) {
       setError('Failed to generate summary. Please try again.');
       console.error(err);
     } finally {

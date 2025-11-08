@@ -1,12 +1,54 @@
-import { User, Project, Log, UserRole, ProjectStatus, Task, TaskStatus, Comment } from './types';
+import { User, Project, Log, UserRole, ProjectStatus, Task, TaskStatus, Comment, Notification } from './types';
 
 export const USERS: User[] = [
-  { id: 'u1', name: 'Aisha Ahmed', email: 'aisha.ahmed@zamzambank.com', avatar: 'https://i.pravatar.cc/150?u=aisha', role: UserRole.Manager },
-  { id: 'u2', name: 'Bilal Khan', email: 'bilal.khan@zamzambank.com', avatar: 'https://i.pravatar.cc/150?u=bilal', role: UserRole.Member },
-  { id: 'u3', name: 'Fatima Ali', email: 'fatima.ali@zamzambank.com', avatar: 'https://i.pravatar.cc/150?u=fatima', role: UserRole.Member },
-  { id: 'u4', name: 'Omar Hassan', email: 'omar.hassan@zamzambank.com', avatar: 'https://i.pravatar.cc/150?u=omar', role: UserRole.Member },
-  { id: 'u5', name: 'Layla Ibrahim', email: 'layla.ibrahim@zamzambank.com', avatar: 'https://i.pravatar.cc/150?u=layla', role: UserRole.Member },
-  { id: 'u6', name: 'Samira Yusuf', email: 'samira.yusuf@zamzambank.com', avatar: 'https://i.pravatar.cc/150?u=samira', role: UserRole.Executive },
+  { 
+    id: 'u1', 
+    name: 'Aisha Ahmed', 
+    email: 'aisha.ahmed@zamzambank.com', 
+    avatar: 'https://i.pravatar.cc/150?u=aisha', 
+    role: UserRole.Manager,
+    settings: { notifications: { logReminder: { email: true, telegram: false, time: '17:00' } } }
+  },
+  { 
+    id: 'u2', 
+    name: 'Bilal Khan', 
+    email: 'bilal.khan@zamzambank.com', 
+    avatar: 'https://i.pravatar.cc/150?u=bilal', 
+    role: UserRole.Member,
+    settings: { notifications: { logReminder: { email: true, telegram: true, telegramUsername: '@bilal_k', time: '16:30' } } }
+  },
+  { 
+    id: 'u3', 
+    name: 'Fatima Ali', 
+    email: 'fatima.ali@zamzambank.com', 
+    avatar: 'https://i.pravatar.cc/150?u=fatima', 
+    role: UserRole.Member,
+    settings: { notifications: { logReminder: { email: true, telegram: false, time: '17:00' } } }
+  },
+  { 
+    id: 'u4', 
+    name: 'Omar Hassan', 
+    email: 'omar.hassan@zamzambank.com', 
+    avatar: 'https://i.pravatar.cc/150?u=omar', 
+    role: UserRole.Member,
+    settings: { notifications: { logReminder: { email: false, telegram: true, telegramUsername: '@omar_h', time: '18:00' } } }
+  },
+  { 
+    id: 'u5', 
+    name: 'Layla Ibrahim', 
+    email: 'layla.ibrahim@zamzambank.com', 
+    avatar: 'https://i.pravatar.cc/150?u=layla', 
+    role: UserRole.Member,
+    settings: { notifications: { logReminder: { email: true, telegram: false, time: '17:00' } } }
+  },
+  { 
+    id: 'u6', 
+    name: 'Samira Yusuf', 
+    email: 'samira.yusuf@zamzambank.com', 
+    avatar: 'https://i.pravatar.cc/150?u=samira', 
+    role: UserRole.Executive,
+    settings: { notifications: { logReminder: { email: false, telegram: false, time: '17:00' } } }
+  },
 ];
 
 export const PROJECTS: Project[] = [
@@ -89,4 +131,10 @@ export const COMMENTS: Comment[] = [
   { id: 'c2', taskId: 't2', userId: 'u2', text: "Compliance team has been notified. They said they'll get back to us by EOD tomorrow.", timestamp: '2024-07-29T11:30:00Z' },
   { id: 'c3', taskId: 't3', userId: 'u1', text: "Any blockers on setting this up?", timestamp: '2024-07-28T14:00:00Z' },
   { id: 'c4', taskId: 't5', userId: 'u4', text: "The performance is still a bit slow. I'm working on optimizing the queries.", timestamp: '2024-07-29T09:15:00Z' },
+];
+
+export const NOTIFICATIONS: Notification[] = [
+  { id: 'n1', recipientId: 'u2', senderId: 'u1', message: 'Please remember to update the JIRA tickets for the Digital Banking project.', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), isRead: false },
+  { id: 'n2', recipientId: 'u3', senderId: 'u1', message: 'Great work on the UI mockups for the account summary page!', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), isRead: true },
+  { id: 'n3', recipientId: 'u4', senderId: 'u1', message: 'The Core Banking migration is a top priority. Let\'s sync up tomorrow at 10 AM.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), isRead: true },
 ];

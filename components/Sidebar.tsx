@@ -1,14 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { DashboardIcon, BriefcaseIcon, CheckSquareIcon, SettingsIcon, ChartPieIcon, PencilAltIcon, LogoutIcon, CloseIcon } from './icons';
-import { User, UserRole } from '../types';
+import { DashboardIcon, BriefcaseIcon, CheckSquareIcon, SettingsIcon, ChartPieIcon, PencilAltIcon, LogoutIcon, CloseIcon, UsersIcon, BellIcon } from './icons';
+import { User, UserRole, Notification } from '../types';
 
 type SidebarProps = {
   currentPage: string;
   setCurrentPage: (page: string) => void;
   setSelectedProject: (id: string | null) => void;
   currentUser: User;
+  notifications: Notification[];
+  users: User[];
   onOpenLogModal: () => void;
   onLogout: () => void;
+  onMarkNotificationAsRead: (id: string | 'all') => void;
 };
 
 type NavItemProps = {
@@ -16,6 +19,24 @@ type NavItemProps = {
   label: string;
   isActive: boolean;
   onClick: () => void;
+};
+
+const formatRelativeTime = (timestamp: string) => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+    const minutes = Math.floor(diffInSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 1) return `${days}d ago`;
+    if (days === 1) return `1d ago`;
+    if (hours > 1) return `${hours}h ago`;
+    if (hours === 1) return `1h ago`;
+    if (minutes > 1) return `${minutes}m ago`;
+    if (minutes <= 1) return `1m ago`;
+    return 'just now';
 };
 
 const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick }) => (
@@ -51,8 +72,9 @@ const BankLogo = () => (
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, setSelectedProject, currentUser, onOpenLogModal, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, setSelectedProject, currentUser, notifications, users, onOpenLogModal, onLogout, onMarkNotificationAsRead }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const handleNav = (page: string) => {
     setCurrentPage(page);
@@ -66,11 +88,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, setSelec
       { page: 'projects', label: 'Projects', icon: <BriefcaseIcon />, roles: [UserRole.Manager, UserRole.Member, UserRole.Executive] },
       { page: 'my-tasks', label: 'My Tasks', icon: <CheckSquareIcon />, roles: [UserRole.Manager, UserRole.Member] },
       { page: 'daily-logs', label: 'Daily Logs', icon: <PencilAltIcon />, roles: [UserRole.Manager, UserRole.Member] },
+      { page: 'team', label: 'Team', icon: <UsersIcon />, roles: [UserRole.Manager, UserRole.Executive] },
       { page: 'reporting', label: 'Reporting', icon: <ChartPieIcon />, roles: [UserRole.Manager, UserRole.Executive] },
+      { page: 'settings', label: 'Settings', icon: <SettingsIcon />, roles: [UserRole.Manager, UserRole.Member, UserRole.Executive] },
     ];
     return allItems.filter(item => item.roles.includes(currentUser.role));
   }, [currentUser.role]);
 
+  const userNotifications = useMemo(() => {
+    return notifications
+      .filter(n => n.recipientId === currentUser.id)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [notifications, currentUser.id]);
+
+  const unreadCount = useMemo(() => userNotifications.filter(n => !n.isRead).length, [userNotifications]);
+  const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
   return (
     <>
@@ -102,6 +134,41 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, setSelec
                     Add Log
                   </button>
               )}
+               <div className="relative">
+                <button onClick={() => setIsNotificationsOpen(prev => !prev)} title="Notifications" className="p-2 rounded-full text-neutral-300 hover:bg-brand-secondary hover:text-white transition-colors">
+                  <BellIcon className="w-5 h-5" />
+                  {unreadCount > 0 && <span className="absolute top-1 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-brand-primary"></span>}
+                </button>
+                {isNotificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-2xl z-50 text-neutral-800 animate-fade-in">
+                        <div className="p-3 border-b flex justify-between items-center">
+                            <h4 className="font-semibold text-sm">Notifications</h4>
+                            {unreadCount > 0 && <button onClick={() => onMarkNotificationAsRead('all')} className="text-xs text-brand-primary hover:underline">Mark all as read</button>}
+                        </div>
+                        <ul className="max-h-96 overflow-y-auto">
+                            {userNotifications.length > 0 ? userNotifications.map(n => {
+                                const sender = userMap.get(n.senderId);
+                                return (
+                                    <li key={n.id} onClick={() => onMarkNotificationAsRead(n.id)} className={`border-b p-3 hover:bg-neutral-50 cursor-pointer ${!n.isRead ? 'bg-brand-light' : ''}`}>
+                                        <div className="flex items-start space-x-3">
+                                            <img src={sender?.avatar} alt={sender?.name} className="w-8 h-8 rounded-full mt-0.5"/>
+                                            <div className="flex-1">
+                                                <p className="text-sm">
+                                                    <span className="font-semibold">{sender?.name}</span>
+                                                    <span className="text-neutral-600"> {n.message}</span>
+                                                </p>
+                                                <p className="text-xs text-neutral-400 mt-1">{formatRelativeTime(n.timestamp)}</p>
+                                            </div>
+                                            {!n.isRead && <div className="w-2.5 h-2.5 bg-brand-primary rounded-full mt-1 flex-shrink-0"></div>}
+                                        </div>
+                                    </li>
+                                );
+                            }) : <li className="p-4 text-center text-sm text-neutral-500">No new notifications</li>}
+                        </ul>
+                    </div>
+                )}
+               </div>
+
               <div className="flex items-center space-x-3">
                 <img src={currentUser.avatar} alt={currentUser.name} className="w-9 h-9 rounded-full" />
                  <div>

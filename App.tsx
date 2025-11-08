@@ -9,8 +9,12 @@ import LogSubmissionModal from './components/LogSubmissionModal';
 import Footer from './components/Footer';
 import ProjectsView from './components/ProjectsView';
 import ProjectModal from './components/ProjectModal';
-import { USERS, PROJECTS, LOGS, TASKS, COMMENTS } from './data';
-import { User, Project, Log, UserRole, Task, TaskStatus, Comment } from './types';
+import SettingsView from './components/SettingsView';
+import TeamView from './components/TeamView';
+import SendNotificationModal from './components/SendNotificationModal';
+import RegisterMemberModal from './components/RegisterMemberModal';
+import { USERS, PROJECTS, LOGS, TASKS, COMMENTS, NOTIFICATIONS } from './data';
+import { User, Project, Log, UserRole, Task, TaskStatus, Comment, UserSettings, Notification } from './types';
 
 type AppProps = {
   currentUser: User;
@@ -18,27 +22,48 @@ type AppProps = {
 };
 
 const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
-  const [users] = useState<User[]>(USERS);
+  const [users, setUsers] = useState<User[]>(USERS);
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
   const [logs, setLogs] = useState<Log[]>(LOGS);
   const [tasks, setTasks] = useState<Task[]>(TASKS);
   const [comments, setComments] = useState<Comment[]>(COMMENTS);
+  const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATIONS);
   
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
-
+  
+  const appCurrentUser = useMemo(() => users.find(u => u.id === currentUser.id)!, [users, currentUser.id]);
 
   const selectedProject = useMemo(() => {
     return projects.find(p => p.id === selectedProjectId) || null;
   }, [selectedProjectId, projects]);
   
   const userProjects = useMemo(() => {
-    return projects.filter(p => p.team.includes(currentUser.id) && p.status !== 'Completed');
-  }, [projects, currentUser]);
+    return projects.filter(p => p.team.includes(appCurrentUser.id) && p.status !== 'Completed');
+  }, [projects, appCurrentUser]);
+  
+  const managedTeamMembers = useMemo(() => {
+    if (appCurrentUser.role !== UserRole.Manager) return [];
+    const managerProjectIds = new Set(projects.filter(p => p.team.includes(appCurrentUser.id)).map(p => p.id));
+    const teamMemberIds = new Set(projects.filter(p => managerProjectIds.has(p.id)).flatMap(p => p.team));
+    return users.filter(u => teamMemberIds.has(u.id) && u.id !== appCurrentUser.id).sort((a,b) => a.name.localeCompare(b.name));
+  }, [users, projects, appCurrentUser]);
+
+  const membersForTeamView = useMemo(() => {
+    if (appCurrentUser.role === UserRole.Executive) {
+        return users.filter(u => u.id !== appCurrentUser.id).sort((a,b) => a.name.localeCompare(b.name));
+    }
+    if (appCurrentUser.role === UserRole.Manager) {
+        return managedTeamMembers;
+    }
+    return [];
+  }, [users, appCurrentUser, managedTeamMembers]);
 
   const handleProjectSelect = (id: string) => {
     setSelectedProjectId(id);
@@ -85,41 +110,27 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         const draggedTask = currentTasks.find(t => t.id === draggedTaskId);
         if (!draggedTask) return currentTasks;
 
-        // All tasks in the destination column, sorted, excluding the one being dragged
-        const destinationTasks = currentTasks
-            .filter(t => t.status === newStatus && t.id !== draggedTaskId)
-            .sort((a, b) => a.order - b.order);
+        const destinationTasks = currentTasks.filter(t => t.status === newStatus && t.id !== draggedTaskId).sort((a, b) => a.order - b.order);
 
         let newOrder: number;
 
         if (targetTaskId) {
             const targetTaskIndex = destinationTasks.findIndex(t => t.id === targetTaskId);
-            
-            // This should not happen if targetTaskId is valid, but as a fallback
             if (targetTaskIndex === -1) { 
                 const lastTask = destinationTasks[destinationTasks.length - 1];
                 newOrder = lastTask ? lastTask.order + 10 : 10;
             } else {
                 const prevTask = destinationTasks[targetTaskIndex - 1];
                 const targetTask = destinationTasks[targetTaskIndex];
-                
                 const prevOrder = prevTask ? prevTask.order : 0;
-                // targetTask should always exist here
-                const targetOrder = targetTask.order;
-                
-                newOrder = (prevOrder + targetOrder) / 2;
+                newOrder = (prevOrder + targetTask.order) / 2;
             }
         } else {
-            // Dropped on the column itself (at the end)
             const lastTask = destinationTasks[destinationTasks.length - 1];
-            newOrder = lastTask ? lastTask.order + 10 : 10; // If column is empty, order is 10
+            newOrder = lastTask ? lastTask.order + 10 : 10;
         }
 
-        return currentTasks.map(task =>
-            task.id === draggedTaskId
-                ? { ...task, status: newStatus, order: newOrder }
-                : task
-        );
+        return currentTasks.map(task => task.id === draggedTaskId ? { ...task, status: newStatus, order: newOrder } : task);
     });
   };
 
@@ -128,7 +139,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         ...taskData,
         id: `t${Date.now()}`,
         status: TaskStatus.ToDo,
-        order: Date.now(), // Simple way to add to end of list
+        order: Date.now(),
     };
     setTasks(prevTasks => [newTask, ...prevTasks]);
   };
@@ -141,7 +152,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     const newLog: Log = {
         ...logData,
         id: `l${Date.now()}`,
-        userId: currentUser.id,
+        userId: appCurrentUser.id,
     };
     setLogs(prevLogs => [newLog, ...prevLogs]);
     setIsLogModalOpen(false);
@@ -151,62 +162,122 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     const newComment: Comment = {
       id: `c${Date.now()}`,
       taskId,
-      userId: currentUser.id,
+      userId: appCurrentUser.id,
       text,
       timestamp: new Date().toISOString(),
     };
     setComments(prev => [newComment, ...prev]);
   };
+  
+  const handleUpdateUserSettings = (newSettings: UserSettings) => {
+    setUsers(currentUsers =>
+      currentUsers.map(user =>
+        user.id === appCurrentUser.id ? { ...user, settings: newSettings } : user
+      )
+    );
+  };
+
+  const handleSendNotification = (message: string, recipientIds: string[]) => {
+    const newNotifications: Notification[] = recipientIds.map(userId => ({
+      id: `n${Date.now()}-${userId}`,
+      recipientId: userId,
+      senderId: appCurrentUser.id,
+      message,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+    }));
+    setNotifications(prev => [...prev, ...newNotifications]);
+    setIsNotificationModalOpen(false);
+  };
+
+  const handleMarkNotificationAsRead = (notificationId: string | 'all') => {
+    setNotifications(currentNotifications =>
+      currentNotifications.map(n => {
+        if (n.recipientId !== appCurrentUser.id) return n;
+        if (notificationId === 'all' || n.id === notificationId) {
+          return { ...n, isRead: true };
+        }
+        return n;
+      })
+    );
+  };
+
+  const handleRegisterMember = (userData: { name: string; email: string; role: UserRole; }) => {
+    const newUser: User = {
+        id: `u${Date.now()}`,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        avatar: `https://i.pravatar.cc/150?u=${userData.email}`,
+        settings: {
+            notifications: {
+                logReminder: { email: true, telegram: false, time: '17:00' }
+            }
+        }
+    };
+    setUsers(prev => [...prev, newUser]);
+    setIsRegisterModalOpen(false);
+  };
 
   const renderContent = () => {
-    if (currentPage === 'projects') {
-      if (selectedProject) {
-        return <ProjectDetail 
-                    project={selectedProject} 
-                    projects={projects}
-                    users={users} 
+    switch (currentPage) {
+        case 'projects':
+            if (selectedProject) {
+                return <ProjectDetail 
+                            project={selectedProject} 
+                            projects={projects}
+                            users={users} 
+                            logs={logs} 
+                            tasks={tasks}
+                            comments={comments}
+                            currentUser={appCurrentUser}
+                            onBack={handleBackToProjects}
+                            onTaskMove={handleTaskMove}
+                            onTaskCreate={handleTaskCreate}
+                            onProjectUpdate={(project) => handleOpenEditProjectModal(project)}
+                            onProjectDelete={handleProjectDelete}
+                            onTaskDelete={handleTaskDelete}
+                            onCommentAdd={handleCommentAdd}
+                        />;
+            }
+            return <ProjectsView 
+                        projects={projects}
+                        users={users}
+                        tasks={tasks}
+                        currentUser={appCurrentUser}
+                        onProjectSelect={handleProjectSelect}
+                        onOpenCreateModal={handleOpenCreateProjectModal}
+                        onOpenEditModal={handleOpenEditProjectModal}
+                     />;
+        case 'my-tasks':
+            return <MyTasksView tasks={tasks} projects={projects} currentUser={appCurrentUser} />;
+        case 'daily-logs':
+            return <DailyLogsView logs={logs} users={users} projects={projects} />;
+        case 'team':
+            return <TeamView 
+                        teamMembers={membersForTeamView} 
+                        tasks={tasks} 
+                        logs={logs} 
+                        currentUser={appCurrentUser} 
+                        onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
+                        onOpenRegisterModal={() => setIsRegisterModalOpen(true)}
+                    />;
+        case 'reporting':
+            return <ReportingView projects={projects} tasks={tasks} users={users} />;
+        case 'settings':
+            return <SettingsView currentUser={appCurrentUser} onUpdateUserSettings={handleUpdateUserSettings} />;
+        case 'dashboard':
+        default:
+            return <Dashboard 
+                    projects={projects} 
                     logs={logs} 
-                    tasks={tasks}
-                    comments={comments}
-                    currentUser={currentUser}
-                    onBack={handleBackToProjects}
-                    onTaskMove={handleTaskMove}
-                    onTaskCreate={handleTaskCreate}
-                    onProjectUpdate={(project) => handleOpenEditProjectModal(project)}
-                    onProjectDelete={handleProjectDelete}
-                    onTaskDelete={handleTaskDelete}
-                    onCommentAdd={handleCommentAdd}
-                />;
-      }
-      return <ProjectsView 
-                projects={projects}
-                users={users}
-                tasks={tasks}
-                currentUser={currentUser}
-                onProjectSelect={handleProjectSelect}
-                onOpenCreateModal={handleOpenCreateProjectModal}
-                onOpenEditModal={handleOpenEditProjectModal}
-             />;
+                    tasks={tasks} 
+                    users={users} 
+                    currentUser={appCurrentUser} 
+                    onProjectSelect={handleProjectSelect} 
+                    onOpenEditModal={handleOpenEditProjectModal}
+                   />;
     }
-    if (currentPage === 'my-tasks') {
-        return <MyTasksView tasks={tasks} projects={projects} currentUser={currentUser} />;
-    }
-    if (currentPage === 'daily-logs') {
-        return <DailyLogsView logs={logs} users={users} projects={projects} />;
-    }
-    if (currentPage === 'reporting') {
-        return <ReportingView projects={projects} tasks={tasks} users={users} />;
-    }
-    // Default to dashboard
-    return <Dashboard 
-            projects={projects} 
-            logs={logs} 
-            tasks={tasks} 
-            users={users} 
-            currentUser={currentUser} 
-            onProjectSelect={handleProjectSelect} 
-            onOpenEditModal={handleOpenEditProjectModal}
-           />;
   };
 
   return (
@@ -215,15 +286,18 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
         setSelectedProject={setSelectedProjectId}
-        currentUser={currentUser}
+        currentUser={appCurrentUser}
+        notifications={notifications}
+        users={users}
         onOpenLogModal={() => setIsLogModalOpen(true)}
         onLogout={onLogout}
+        onMarkNotificationAsRead={handleMarkNotificationAsRead}
       />
       <main className="flex-1">
         {renderContent()}
       </main>
       <Footer />
-      {currentUser.role !== UserRole.Executive && (
+      {appCurrentUser.role !== UserRole.Executive && (
         <LogSubmissionModal
             show={isLogModalOpen}
             onClose={() => setIsLogModalOpen(false)}
@@ -231,14 +305,27 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             projects={userProjects}
         />
       )}
-      {currentUser.role === UserRole.Manager && (
-         <ProjectModal
-            show={isProjectModalOpen}
-            onClose={() => setIsProjectModalOpen(false)}
-            onSubmit={handleProjectSubmit}
-            users={users}
-            projectToEdit={projectToEdit}
-         />
+      {appCurrentUser.role === UserRole.Manager && (
+        <>
+            <ProjectModal
+                show={isProjectModalOpen}
+                onClose={() => setIsProjectModalOpen(false)}
+                onSubmit={handleProjectSubmit}
+                users={users}
+                projectToEdit={projectToEdit}
+            />
+            <SendNotificationModal
+                show={isNotificationModalOpen}
+                onClose={() => setIsNotificationModalOpen(false)}
+                onSubmit={handleSendNotification}
+                teamMembers={managedTeamMembers}
+            />
+            <RegisterMemberModal
+                show={isRegisterModalOpen}
+                onClose={() => setIsRegisterModalOpen(false)}
+                onSubmit={handleRegisterMember}
+            />
+        </>
       )}
     </div>
   );

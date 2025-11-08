@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Task, User, Project, TaskStatus } from '../types';
+import { suggestNextTask } from '../services/geminiService';
+import { SparklesIcon, CloseIcon } from './icons';
 
 type MyTasksViewProps = {
   tasks: Task[];
@@ -31,6 +33,9 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
   const [selectedProject, setSelectedProject] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDueDate, setSelectedDueDate] = useState('');
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const [error, setError] = useState('');
 
   const userProjectsWithTasks = useMemo(() => {
     const projectIds = new Set(tasks.filter(t => t.assigneeId === currentUser.id).map(t => t.projectId));
@@ -49,6 +54,8 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
         .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   }, [tasks, currentUser.id, selectedProject, selectedStatus, selectedDueDate]);
 
+  const openTasks = useMemo(() => myTasks.filter(t => t.status !== TaskStatus.Done), [myTasks]);
+
   const getProject = (projectId: string) => projects.find(p => p.id === projectId);
 
   const handleClearFilters = () => {
@@ -57,11 +64,48 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
     setSelectedDueDate('');
   };
 
+  const handleGetSuggestion = async () => {
+    setIsLoadingSuggestion(true);
+    setError('');
+    setAiSuggestion('');
+    try {
+        const suggestion = await suggestNextTask(openTasks, projects);
+        setAiSuggestion(suggestion);
+    } catch (err) {
+        setError('Could not get suggestion. Please try again.');
+    } finally {
+        setIsLoadingSuggestion(false);
+    }
+  };
+
+
   const filtersAreActive = selectedProject !== 'all' || selectedStatus !== 'all' || selectedDueDate !== '';
 
   return (
     <div className="p-8">
-       <h2 className="text-3xl font-bold text-neutral-800 mb-8">My Tasks</h2>
+       <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold text-neutral-800">My Tasks</h2>
+         <button 
+            onClick={handleGetSuggestion}
+            disabled={isLoadingSuggestion || openTasks.length === 0}
+            className="flex items-center bg-brand-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-secondary transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
+          >
+            <SparklesIcon className="w-5 h-5 mr-2" />
+            {isLoadingSuggestion ? 'Thinking...' : 'Suggest Next Task'}
+          </button>
+       </div>
+
+       {error && <div className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p>{error}</p></div>}
+       {aiSuggestion && (
+         <div className="mb-6 bg-brand-light bg-opacity-40 border-l-4 border-brand-accent p-4 rounded-r-lg relative">
+            <button onClick={() => setAiSuggestion('')} className="absolute top-2 right-2 p-1 text-neutral-500 hover:text-neutral-800">
+                <CloseIcon className="w-5 h-5"/>
+            </button>
+            <h4 className="font-bold text-brand-primary mb-2">✨ AI Suggestion</h4>
+            <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: aiSuggestion.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
+         </div>
+       )}
+
       <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-neutral-200">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <h3 className="text-lg font-semibold text-neutral-800 md:col-span-1 self-center">Filter My Tasks</h3>
