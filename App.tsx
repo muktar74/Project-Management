@@ -362,6 +362,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
                 show={isRegisterModalOpen}
                 onClose={() => setIsRegisterModalOpen(false)}
                 onSubmit={handleRegisterMember}
+                users={users}
             />
         </>
       )}

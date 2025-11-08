@@ -28,8 +28,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     e.preventDefault();
     setError('');
 
+    if (!email.trim() || !password.trim()) {
+        setError('Email and password are required.');
+        return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        setError('Please enter a valid email address.');
+        return;
+    }
+
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
+    // NOTE: In a real app, we'd also check the password.
+    // For this simulation, we'll just check for user existence.
     if (user) {
       onLogin(user);
     } else {

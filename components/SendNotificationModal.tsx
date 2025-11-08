@@ -30,10 +30,21 @@ const SendNotificationModal: React.FC<SendNotificationModalProps> = ({ show, onC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || selectedMembers.length === 0) {
-      setError('Please write a message and select at least one recipient.');
+    setError('');
+    
+    if (!message.trim() && selectedMembers.length === 0) {
+        setError('Please write a message and select at least one recipient.');
+        return;
+    }
+    if (!message.trim()) {
+      setError('Please write a message.');
       return;
     }
+    if (selectedMembers.length === 0) {
+        setError('Please select at least one recipient.');
+        return;
+    }
+
     onSubmit(message.trim(), selectedMembers);
     setMessage('');
     setSelectedMembers([]);
@@ -71,7 +82,7 @@ const SendNotificationModal: React.FC<SendNotificationModalProps> = ({ show, onC
                     <input
                         type="checkbox"
                         id="select-all"
-                        checked={selectedMembers.length === teamMembers.length}
+                        checked={selectedMembers.length === teamMembers.length && teamMembers.length > 0}
                         onChange={handleSelectAll}
                         className="h-4 w-4 text-brand-primary border-neutral-300 rounded focus:ring-brand-accent"
                     />

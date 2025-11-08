@@ -9,6 +9,7 @@ type SettingsViewProps = {
 const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onUpdateUserSettings }) => {
   const [settings, setSettings] = useState<UserSettings>(currentUser.settings);
   const [isSaved, setIsSaved] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setSettings(currentUser.settings);
@@ -28,6 +29,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onUpdateUserSe
   };
 
   const handleSave = () => {
+    setError('');
+    const { telegram, telegramUsername } = settings.notifications.logReminder;
+    if (telegram && telegramUsername && !telegramUsername.startsWith('@')) {
+        setError('Telegram username must start with @.');
+        setIsSaved(false);
+        return;
+    }
+    
     onUpdateUserSettings(settings);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
@@ -55,6 +64,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onUpdateUserSe
         <div className="bg-white p-6 rounded-xl shadow-md border border-neutral-200">
             <h3 className="text-xl font-semibold text-neutral-800 border-b pb-4 mb-6">Notifications</h3>
             
+            {error && <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">{error}</div>}
+
             <div className="space-y-6">
                 <div>
                     <h4 className="font-semibold text-neutral-700">Daily Log Reminder</h4>

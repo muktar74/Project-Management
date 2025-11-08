@@ -26,6 +26,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
     if (!project) return [];
     return users.filter(user => project.team.includes(user.id));
   }, [selectedProjectId, projects, users]);
+  
+  const today = new Date().toISOString().split('T')[0];
 
   const resetAndInitializeForm = useCallback(() => {
     setTitle('');
@@ -59,9 +61,22 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !assigneeId || !dueDate || !selectedProjectId) {
-      setError('Please fill out all required fields (Project, Title, Assignee, Due Date).');
+    setError('');
+    
+    const validationErrors: string[] = [];
+    if (!selectedProjectId) validationErrors.push('Project');
+    if (!title.trim()) validationErrors.push('Title');
+    if (!assigneeId) validationErrors.push('Assignee');
+    if (!dueDate) validationErrors.push('Due Date');
+    
+    if (validationErrors.length > 0) {
+      setError(`Please fill out all required fields: ${validationErrors.join(', ')}.`);
       return;
+    }
+
+    if (new Date(dueDate) < new Date(today)) {
+        setError('Due date cannot be in the past.');
+        return;
     }
 
     onSubmit({
@@ -143,6 +158,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
                 type="date"
                 id="task-duedate"
                 value={dueDate}
+                min={today}
                 onChange={e => setDueDate(e.target.value)}
                 className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
               />

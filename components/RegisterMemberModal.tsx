@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { UserRole } from '../types';
+import { User, UserRole } from '../types';
 import { CloseIcon } from './icons';
 
 type RegisterMemberModalProps = {
   show: boolean;
   onClose: () => void;
   onSubmit: (userData: { name: string; email: string; role: UserRole }) => void;
+  users: User[];
 };
 
-const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({ show, onClose, onSubmit }) => {
+const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({ show, onClose, onSubmit, users }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.Member);
@@ -28,13 +29,20 @@ const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({ show, onClose
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) {
+    setError('');
+
+    if (!name.trim() || !email.trim()) {
       setError('Please fill out all required fields.');
       return;
     }
-    // Basic email validation
+    
     if (!/\S+@\S+\.\S+/.test(email)) {
         setError('Please enter a valid email address.');
+        return;
+    }
+
+    if (users.some(user => user.email.toLowerCase() === email.toLowerCase())) {
+        setError('A user with this email address already exists.');
         return;
     }
 

@@ -48,10 +48,23 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ show, onClose, onSubmit, us
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !startDate || !endDate) {
-      setError('Please fill out all required fields: Name, Start Date, and End Date.');
-      return;
+    setError('');
+
+    const validationErrors: string[] = [];
+    if (!name.trim()) validationErrors.push('Project Name');
+    if (!startDate) validationErrors.push('Start Date');
+    if (!endDate) validationErrors.push('End Date');
+    
+    if (validationErrors.length > 0) {
+        setError(`Please fill out required fields: ${validationErrors.join(', ')}.`);
+        return;
     }
+
+    if (name.trim().length < 3) {
+        setError('Project Name must be at least 3 characters long.');
+        return;
+    }
+
     if (new Date(startDate) > new Date(endDate)) {
         setError('End Date cannot be before Start Date.');
         return;

@@ -61,8 +61,15 @@ const LogSubmissionModal: React.FC<LogSubmissionModalProps> = ({ show, onClose, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectId || !date || !yesterdaysTasks || !todaysPlan) {
-      setError('Please fill out all required fields.');
+    setError('');
+    const validationErrors: string[] = [];
+    if (!projectId) validationErrors.push('Project');
+    if (!date) validationErrors.push('Date');
+    if (!yesterdaysTasks.trim()) validationErrors.push("Yesterday's Accomplishments");
+    if (!todaysPlan.trim()) validationErrors.push("Today's Plan");
+
+    if (validationErrors.length > 0) {
+      setError(`Please fill out all required fields: ${validationErrors.join(', ')}.`);
       return;
     }
 
