@@ -134,18 +134,27 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     });
   };
 
-  const handleTaskCreate = (taskData: Omit<Task, 'id' | 'status'>) => {
+  const handleTaskCreate = (taskData: Omit<Task, 'id' | 'status' | 'order' | 'dependencies'>) => {
     const newTask: Task = {
         ...taskData,
         id: `t${Date.now()}`,
         status: TaskStatus.ToDo,
         order: Date.now(),
+        dependencies: [],
     };
     setTasks(prevTasks => [newTask, ...prevTasks]);
   };
   
   const handleTaskDelete = (taskId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  const handleUpdateTask = (taskId: string, updates: Partial<Omit<Task, 'id'>>) => {
+    setTasks(currentTasks => 
+        currentTasks.map(task => 
+            task.id === taskId ? { ...task, ...updates } : task
+        )
+    );
   };
 
   const handleLogSubmit = (logData: Omit<Log, 'id' | 'userId'>) => {
@@ -238,6 +247,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
                             onProjectDelete={handleProjectDelete}
                             onTaskDelete={handleTaskDelete}
                             onCommentAdd={handleCommentAdd}
+                            onUpdateTask={handleUpdateTask}
                         />;
             }
             return <ProjectsView 

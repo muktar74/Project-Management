@@ -11,6 +11,8 @@ type TaskDetailModalProps = {
   users: User[];
   currentUser: User;
   onAddComment: (taskId: string, text: string) => void;
+  allTasksInProject: Task[];
+  onUpdateTask: (taskId: string, updates: Partial<Omit<Task, 'id'>>) => void;
 };
 
 const formatRelativeTime = (timestamp: string) => {
@@ -32,11 +34,57 @@ const formatRelativeTime = (timestamp: string) => {
 };
 
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ show, onClose, task, project, comments, users, currentUser, onAddComment }) => {
+const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ show, onClose, task, project, comments, users, currentUser, onAddComment, allTasksInProject, onUpdateTask }) => {
   const [newComment, setNewComment] = useState('');
   
   const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  const taskMap = useMemo(() => new Map(allTasksInProject.map(t => [t.id, t])), [allTasksInProject]);
+
   const assignee = useMemo(() => userMap.get(task.assigneeId), [task.assigneeId, userMap]);
+
+  const possibleDependencies = useMemo(() => {
+    return allTasksInProject.filter(t => 
+        t.id !== task.id && !task.dependencies.includes(t.id)
+    );
+  }, [allTasksInProject, task.id, task.dependencies]);
+
+  const blockedTasks = useMemo(() => {
+      return allTasksInProject.filter(t => t.dependencies.includes(task.id));
+  }, [allTasksInProject, task.id]);
+  
+  const isCircular = (taskIdToAdd: string): boolean => {
+      const queue: string[] = [task.id];
+      const visited = new Set<string>([task.id]);
+
+      while(queue.length > 0){
+          const currentId = queue.shift()!;
+          const tasksBlockedByCurrent = allTasksInProject.filter(t => t.dependencies.includes(currentId));
+
+          for (const blockedTask of tasksBlockedByCurrent) {
+              if (blockedTask.id === taskIdToAdd) return true;
+              if (!visited.has(blockedTask.id)) {
+                  visited.add(blockedTask.id);
+                  queue.push(blockedTask.id);
+              }
+          }
+      }
+      return false;
+  };
+
+  const handleAddDependency = (depId: string) => {
+      if (!depId) return;
+      if (isCircular(depId)) {
+          alert("Adding this task would create a circular dependency.");
+          return;
+      }
+      const newDeps = [...task.dependencies, depId];
+      onUpdateTask(task.id, { dependencies: newDeps });
+  };
+
+  const handleRemoveDependency = (depId: string) => {
+      const newDeps = task.dependencies.filter(id => id !== depId);
+      onUpdateTask(task.id, { dependencies: newDeps });
+  };
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,8 +137,51 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ show, onClose, task, 
                     <p className="text-neutral-600 whitespace-pre-wrap">{task.description}</p>
                 </div>
             )}
+
+            <div className="border-t border-neutral-200 mt-6 pt-6">
+                <h3 className="font-semibold text-neutral-700 mb-4">Task Dependencies</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="text-sm font-medium text-neutral-600 mb-2 block">Depends On (Prerequisites)</label>
+                        <div className="space-y-2 mb-3">
+                            {task.dependencies.map(depId => {
+                                const depTask = taskMap.get(depId);
+                                return (
+                                    <div key={depId} className="flex items-center justify-between bg-neutral-100 p-2 rounded-md text-sm">
+                                        <span className="truncate pr-2">{depTask?.title || 'Unknown Task'}</span>
+                                        <button onClick={() => handleRemoveDependency(depId)} className="p-1 text-neutral-500 hover:text-red-600 flex-shrink-0">
+                                            <CloseIcon className="w-4 h-4"/>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                            {task.dependencies.length === 0 && <p className="text-xs text-neutral-500 italic px-2">This task has no prerequisites.</p>}
+                        </div>
+                        <select
+                            onChange={(e) => handleAddDependency(e.target.value)}
+                            value=""
+                            className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
+                        >
+                            <option value="" disabled>Add a prerequisite...</option>
+                            {possibleDependencies.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium text-neutral-600 mb-2 block">Blocks (Subsequent Tasks)</label>
+                        <div className="space-y-2">
+                            {blockedTasks.map(blockedTask => (
+                                <div key={blockedTask.id} className="bg-neutral-100 p-2 rounded-md text-sm truncate">
+                                    <span>{blockedTask.title}</span>
+                                </div>
+                            ))}
+                            {blockedTasks.length === 0 && <p className="text-xs text-neutral-500 italic px-2">This task is not blocking others.</p>}
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            <div>
+            <div className="mt-6 border-t pt-6">
                 <h3 className="font-semibold text-neutral-700 mb-4">Activity</h3>
                 <div className="space-y-4">
                     {comments.map(comment => {

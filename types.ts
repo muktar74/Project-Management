@@ -69,6 +69,7 @@ export interface Task {
     status: TaskStatus;
     dueDate: string;
     order: number;
+    dependencies: string[]; // IDs of tasks that must be completed first
 }
 
 export interface Comment {

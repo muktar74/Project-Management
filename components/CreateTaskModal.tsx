@@ -5,7 +5,7 @@ import { CloseIcon } from './icons';
 type CreateTaskModalProps = {
   show: boolean;
   onClose: () => void;
-  onSubmit: (taskData: Omit<Task, 'id' | 'status' | 'order'>) => void;
+  onSubmit: (taskData: Omit<Task, 'id' | 'status' | 'order' | 'dependencies'>) => void;
   projects: Project[];
   users: User[];
   defaultProjectId?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Project, User, Log, ProjectStatus, Task, TaskStatus, UserRole, Comment } from '../types';
-import { SparklesIcon, ArrowLeftIcon, PlusIcon, CalendarIcon, ExclamationIcon, PencilAltIcon, TrashIcon, ChatAltIcon } from './icons';
+import { SparklesIcon, ArrowLeftIcon, PlusIcon, CalendarIcon, ExclamationIcon, PencilAltIcon, TrashIcon, ChatAltIcon, LockClosedIcon, LinkIcon } from './icons';
 import { summarizeLogs } from '../services/geminiService';
 import CreateTaskModal from './CreateTaskModal';
 import TaskDetailModal from './TaskDetailModal';
@@ -15,11 +15,12 @@ type ProjectDetailProps = {
   currentUser: User;
   onBack: () => void;
   onTaskMove: (draggedTaskId: string, targetTaskId: string | null, newStatus: TaskStatus) => void;
-  onTaskCreate: (taskData: Omit<Task, 'id' | 'status' | 'order'>) => void;
+  onTaskCreate: (taskData: Omit<Task, 'id' | 'status' | 'order' | 'dependencies'>) => void;
   onProjectUpdate: (project: Project) => void;
   onProjectDelete: (projectId: string) => void;
   onTaskDelete: (taskId: string) => void;
   onCommentAdd: (taskId: string, text: string) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Omit<Task, 'id'>>) => void;
 };
 
 // Enhanced TaskCard component with more visual cues for due dates
@@ -27,6 +28,7 @@ const TaskCard: React.FC<{
     task: Task,
     user?: User,
     commentsCount: number,
+    allTasks: Task[],
     onDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void,
     onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void,
     onClick: (task: Task) => void,
@@ -35,8 +37,24 @@ const TaskCard: React.FC<{
     isDueSoon: boolean,
     onDelete: (task: Task) => void,
     canDelete: boolean,
-}> = ({ task, user, commentsCount, onDragStart, onDragEnd, onClick, isDragging, isOverdue, isDueSoon, onDelete, canDelete }) => {
+}> = ({ task, user, commentsCount, allTasks, onDragStart, onDragEnd, onClick, isDragging, isOverdue, isDueSoon, onDelete, canDelete }) => {
     
+    const { isBlocked, blockingCount } = useMemo(() => {
+        // Fix: Explicitly type `allTasksMap` to resolve an issue where `allTasksMap.get()` was returning `unknown`, causing a type error on `depTask.status`.
+        const allTasksMap: Map<string, Task> = new Map(allTasks.map(t => [t.id, t]));
+        
+        const isBlocked = task.dependencies.some(depId => {
+            const depTask = allTasksMap.get(depId);
+            return depTask && depTask.status !== TaskStatus.Done;
+        });
+
+        const blockingCount = allTasks.filter(otherTask => 
+            otherTask.dependencies.includes(task.id)
+        ).length;
+
+        return { isBlocked, blockingCount };
+    }, [task, allTasks]);
+
     const getDueDateInfo = () => {
         if (isOverdue) {
             return {
@@ -59,6 +77,7 @@ const TaskCard: React.FC<{
     const dueDateInfo = getDueDateInfo();
 
     const getBorderClass = () => {
+        if (isBlocked) return 'border-l-4 border-neutral-400';
         if (isOverdue) return 'border-l-4 border-red-400';
         if (isDueSoon) return 'border-l-4 border-yellow-400';
         return 'border-l-4 border-transparent';
@@ -66,12 +85,12 @@ const TaskCard: React.FC<{
 
     return (
         <div 
-            draggable={true}
+            draggable={!isBlocked}
             onDragStart={(e) => onDragStart(e, task.id)}
             onDragEnd={onDragEnd}
             onClick={() => onClick(task)}
             data-task-id={task.id}
-            className={`bg-white p-3 rounded-lg shadow-sm border border-neutral-200 mb-3 cursor-pointer active:cursor-grabbing transition-all duration-200 hover:shadow-md hover:border-brand-primary ${getBorderClass()} ${isDragging ? 'opacity-50 scale-95' : ''}`}
+            className={`p-3 rounded-lg shadow-sm border border-neutral-200 mb-3 transition-all duration-200 ${isBlocked ? 'opacity-70 bg-neutral-50 cursor-not-allowed' : 'bg-white cursor-pointer active:cursor-grabbing hover:shadow-md hover:border-brand-primary'} ${getBorderClass()} ${isDragging ? 'opacity-50 scale-95' : ''}`}
         >
             <div className="flex justify-between items-start">
                 <p className="text-sm font-semibold text-neutral-800 pr-2 flex-grow">{task.title}</p>
@@ -89,15 +108,26 @@ const TaskCard: React.FC<{
                 )}
             </div>
             <div className="flex justify-between items-center mt-3">
-                <div className={`flex items-center text-xs ${dueDateInfo.textClass}`}>
-                    {dueDateInfo.icon}
-                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                <div className="flex items-center space-x-3">
+                    <div className={`flex items-center text-xs ${dueDateInfo.textClass}`}>
+                        {dueDateInfo.icon}
+                        <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                    </div>
+                    {isBlocked && (
+                        <LockClosedIcon className="w-4 h-4 text-neutral-500" title="This task is blocked by dependencies." />
+                    )}
                 </div>
                 <div className="flex items-center space-x-3">
                     {commentsCount > 0 && (
                         <div className="flex items-center text-xs text-neutral-500">
                             <ChatAltIcon className="w-4 h-4 mr-1" />
                             <span>{commentsCount}</span>
+                        </div>
+                    )}
+                    {blockingCount > 0 && (
+                        <div className="flex items-center text-xs text-neutral-500" title={`This task blocks ${blockingCount} other task(s).`}>
+                            <LinkIcon className="w-4 h-4 mr-1" />
+                            <span>{blockingCount}</span>
                         </div>
                     )}
                     {user && <img src={user.avatar} alt={user.name} title={user.name} className="w-7 h-7 rounded-full border-2 border-white" />}
@@ -107,13 +137,14 @@ const TaskCard: React.FC<{
     )
 };
 
-const BoardColumn = ({ title, status, tasks, users, currentUser, comments, isDraggedOver, onDrop, onDragOver, onDragEnter, onDragLeave, onTaskDragStart, onTaskDragEnd, draggedTaskId, onTaskClick, onTaskDelete }: { 
+const BoardColumn = ({ title, status, tasks, users, currentUser, comments, allTasks, isDraggedOver, onDrop, onDragOver, onDragEnter, onDragLeave, onTaskDragStart, onTaskDragEnd, draggedTaskId, onTaskClick, onTaskDelete }: { 
     title: string, 
     status: TaskStatus, 
     tasks: Task[], 
     users: User[], 
     currentUser: User,
     comments: Comment[],
+    allTasks: Task[],
     isDraggedOver: boolean,
     onDrop: (e: React.DragEvent<HTMLDivElement>, status: TaskStatus) => void, 
     onDragOver: (e: React.DragEvent<HTMLDivElement>) => void,
@@ -171,6 +202,7 @@ const BoardColumn = ({ title, status, tasks, users, currentUser, comments, isDra
                             task={task} 
                             user={user} 
                             commentsCount={commentsCount}
+                            allTasks={allTasks}
                             onDragStart={onTaskDragStart} 
                             onDragEnd={onTaskDragEnd}
                             onClick={onTaskClick}
@@ -186,7 +218,7 @@ const BoardColumn = ({ title, status, tasks, users, currentUser, comments, isDra
     );
 };
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users, logs, tasks, comments, currentUser, onBack, onTaskMove, onTaskCreate, onProjectUpdate, onProjectDelete, onTaskDelete, onCommentAdd }) => {
+const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users, logs, tasks, comments, currentUser, onBack, onTaskMove, onTaskCreate, onProjectUpdate, onProjectDelete, onTaskDelete, onCommentAdd, onUpdateTask }) => {
   const [aiSummary, setAiSummary] = useState('');
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [error, setError] = useState('');
@@ -307,7 +339,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                  )}
                  {currentUser.role === UserRole.Manager && (
                     <>
-                        <button onClick={() => {}} className="p-2 rounded-lg text-neutral-600 bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors">
+                        <button onClick={() => onProjectUpdate(project)} className="p-2 rounded-lg text-neutral-600 bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors">
                             <PencilAltIcon className="w-5 h-5"/>
                         </button>
                         <button onClick={handleDeleteProject} className="p-2 rounded-lg text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
@@ -327,6 +359,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 title="To Do" 
                 status={TaskStatus.ToDo} 
                 tasks={projectTasks.filter(t => t.status === TaskStatus.ToDo)} 
+                allTasks={projectTasks}
                 users={users} 
                 currentUser={currentUser}
                 comments={comments}
@@ -345,6 +378,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 title="In Progress" 
                 status={TaskStatus.InProgress} 
                 tasks={projectTasks.filter(t => t.status === TaskStatus.InProgress)} 
+                allTasks={projectTasks}
                 users={users} 
                 currentUser={currentUser}
                 comments={comments}
@@ -363,6 +397,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 title="Review" 
                 status={TaskStatus.Review} 
                 tasks={projectTasks.filter(t => t.status === TaskStatus.Review)} 
+                allTasks={projectTasks}
                 users={users} 
                 currentUser={currentUser}
                 comments={comments}
@@ -381,6 +416,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 title="Done" 
                 status={TaskStatus.Done} 
                 tasks={projectTasks.filter(t => t.status === TaskStatus.Done)} 
+                allTasks={projectTasks}
                 users={users} 
                 currentUser={currentUser}
                 comments={comments}
@@ -416,6 +452,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
             users={users}
             currentUser={currentUser}
             onAddComment={onCommentAdd}
+            allTasksInProject={projectTasks}
+            onUpdateTask={onUpdateTask}
         />
        )}
     </div>
