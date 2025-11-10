@@ -14,14 +14,17 @@ import TeamView from './components/TeamView';
 import SendNotificationModal from './components/SendNotificationModal';
 import RegisterMemberModal from './components/RegisterMemberModal';
 import { USERS, PROJECTS, LOGS, TASKS, COMMENTS, NOTIFICATIONS } from './data';
-import { User, Project, Log, UserRole, Task, TaskStatus, Comment, UserSettings, Notification } from './types';
+import { User, Project, Log, UserRole, Task, TaskStatus, Comment, UserSettings, Notification, TaskPriority } from './types';
+import { ToastProvider } from './contexts/ToastContext';
+import { useToast } from './hooks/useToast';
+
 
 type AppProps = {
   currentUser: User;
   onLogout: () => void;
 };
 
-const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
+const AppContent: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState<User[]>(USERS);
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
   const [logs, setLogs] = useState<Log[]>(LOGS);
@@ -37,6 +40,8 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+
+  const { showToast } = useToast();
   
   const appCurrentUser = useMemo(() => users.find(u => u.id === currentUser.id)!, [users, currentUser.id]);
 
@@ -97,11 +102,13 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     setTasks(prev => prev.filter(t => t.projectId !== projectId));
     setLogs(prev => prev.filter(l => l.projectId !== projectId));
     setSelectedProjectId(null); // Go back to project list
+    showToast('Project deleted successfully.', 'error');
   };
   
   const handleProjectSubmit = (projectData: Omit<Project, 'id' | 'progress'> & { id?: string }) => {
     if (projectData.id) { // Update
         setProjects(prev => prev.map(p => p.id === projectData.id ? { ...p, ...projectData } as Project : p));
+        showToast('Project updated successfully.');
     } else { // Create
         const newProject: Project = {
             ...projectData,
@@ -109,6 +116,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             progress: 0,
         };
         setProjects(prev => [newProject, ...prev]);
+        showToast('New project created.');
     }
     setIsProjectModalOpen(false);
   };
@@ -142,7 +150,9 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             newOrder = lastTask ? lastTask.order + 10 : 10;
         }
 
-        return currentTasks.map(task => task.id === draggedTaskId ? { ...task, status: newStatus, order: newOrder } : task);
+        const updatedTask = { ...draggedTask, status: newStatus, order: newOrder };
+        showToast(`Task "${updatedTask.title}" moved to ${newStatus}.`, 'info');
+        return currentTasks.map(task => task.id === draggedTaskId ? updatedTask : task);
     });
   };
 
@@ -153,12 +163,20 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         status: TaskStatus.ToDo,
         order: Date.now(),
         dependencies: [],
+        priority: taskData.priority || TaskPriority.Medium,
     };
     setTasks(prevTasks => [newTask, ...prevTasks]);
+    showToast('New task created successfully.');
   };
   
   const handleTaskDelete = (taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    setTasks(prev => {
+        const taskToDelete = prev.find(t => t.id === taskId);
+        if (taskToDelete) {
+            showToast(`Task "${taskToDelete.title}" deleted.`, 'error');
+        }
+        return prev.filter(t => t.id !== taskId)
+    });
   };
 
   const handleUpdateTask = (taskId: string, updates: Partial<Omit<Task, 'id'>>) => {
@@ -177,6 +195,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     };
     setLogs(prevLogs => [newLog, ...prevLogs]);
     setIsLogModalOpen(false);
+    showToast('Daily log submitted successfully.');
   };
 
   const handleCommentAdd = (taskId: string, text: string) => {
@@ -196,6 +215,16 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         user.id === appCurrentUser.id ? { ...user, settings: newSettings } : user
       )
     );
+    showToast('Notification settings saved.');
+  };
+
+  const handleUpdateUserProfile = (profileData: { name: string; email: string; avatar: string }) => {
+    setUsers(currentUsers =>
+      currentUsers.map(user =>
+        user.id === appCurrentUser.id ? { ...user, ...profileData } : user
+      )
+    );
+    showToast('Profile information saved.');
   };
 
   const handleSendNotification = (message: string, recipientIds: string[]) => {
@@ -209,6 +238,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     }));
     setNotifications(prev => [...prev, ...newNotifications]);
     setIsNotificationModalOpen(false);
+    showToast('Notification sent to team members.');
   };
   
   const handleSendReminder = (recipientId: string) => {
@@ -221,6 +251,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         isRead: false,
     };
     setNotifications(prev => [...prev, reminderNotification]);
+    showToast('Reminder sent.', 'info');
   };
 
   const handleMarkNotificationAsRead = (notificationId: string | 'all') => {
@@ -250,6 +281,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     };
     setUsers(prev => [...prev, newUser]);
     setIsRegisterModalOpen(false);
+    showToast(`New member ${userData.name} registered.`);
   };
 
   const renderContent = () => {
@@ -299,7 +331,11 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         case 'reporting':
             return <ReportingView projects={projects} tasks={tasks} users={users} />;
         case 'settings':
-            return <SettingsView currentUser={appCurrentUser} onUpdateUserSettings={handleUpdateUserSettings} />;
+            return <SettingsView 
+                        currentUser={appCurrentUser} 
+                        onUpdateUserSettings={handleUpdateUserSettings} 
+                        onUpdateUserProfile={handleUpdateUserProfile}
+                    />;
         case 'dashboard':
         default:
             return <Dashboard 
@@ -369,5 +405,12 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     </div>
   );
 };
+
+
+const App: React.FC<AppProps> = (props) => (
+  <ToastProvider>
+    <AppContent {...props} />
+  </ToastProvider>
+);
 
 export default App;

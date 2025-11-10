@@ -1,4 +1,4 @@
-import { User, Project, Log, UserRole, ProjectStatus, Task, TaskStatus, Comment, Notification } from './types';
+import { User, Project, Log, UserRole, ProjectStatus, Task, TaskStatus, Comment, Notification, TaskPriority } from './types';
 
 export const USERS: User[] = [
   { 
@@ -107,23 +107,23 @@ export const LOGS: Log[] = [
 
 export const TASKS: Task[] = [
     // Project p1
-    { id: 't1', title: 'Design account summary UI', projectId: 'p1', assigneeId: 'u3', status: TaskStatus.Done, dueDate: '2024-08-05', order: 10, dependencies: [] },
-    { id: 't2', title: 'Develop funds transfer API', projectId: 'p1', assigneeId: 'u2', status: TaskStatus.Review, dueDate: '2024-08-10', order: 10, dependencies: ['t1'] },
-    { id: 't3', title: 'Set up staging environment', projectId: 'p1', assigneeId: 'u2', status: TaskStatus.InProgress, dueDate: '2024-08-12', order: 10, dependencies: [] },
-    { id: 't4', title: 'User acceptance testing', projectId: 'p1', assigneeId: 'u3', status: TaskStatus.ToDo, dueDate: '2024-08-20', order: 10, dependencies: ['t2', 't3'] },
-    { id: 't13', title: 'Deploy to production', projectId: 'p1', assigneeId: 'u1', status: TaskStatus.ToDo, dueDate: '2024-09-01', order: 20, dependencies: ['t4'] },
+    { id: 't1', title: 'Design account summary UI', projectId: 'p1', assigneeId: 'u3', status: TaskStatus.Done, dueDate: '2024-08-05', order: 10, dependencies: [], priority: TaskPriority.High },
+    { id: 't2', title: 'Develop funds transfer API', projectId: 'p1', assigneeId: 'u2', status: TaskStatus.Review, dueDate: '2024-08-10', order: 10, dependencies: ['t1'], reminder: '1_day_before', priority: TaskPriority.High },
+    { id: 't3', title: 'Set up staging environment', projectId: 'p1', assigneeId: 'u2', status: TaskStatus.InProgress, dueDate: '2024-08-12', order: 10, dependencies: [], priority: TaskPriority.Medium },
+    { id: 't4', title: 'User acceptance testing', projectId: 'p1', assigneeId: 'u3', status: TaskStatus.ToDo, dueDate: '2024-08-20', order: 10, dependencies: ['t2', 't3'], priority: TaskPriority.Medium },
+    { id: 't13', title: 'Deploy to production', projectId: 'p1', assigneeId: 'u1', status: TaskStatus.ToDo, dueDate: '2024-09-01', order: 20, dependencies: ['t4'], priority: TaskPriority.Low },
 
     // Project p2
-    { id: 't5', title: 'Analyze data migration scripts', projectId: 'p2', assigneeId: 'u4', status: TaskStatus.InProgress, dueDate: '2024-08-15', order: 20, dependencies: [] },
-    { id: 't6', title: 'Configure test environment for CBS', projectId: 'p2', assigneeId: 'u5', status: TaskStatus.InProgress, dueDate: '2024-08-18', order: 30, dependencies: ['t7'] },
-    { id: 't7', title: 'Procure new server hardware', projectId: 'p2', assigneeId: 'u1', status: TaskStatus.Done, dueDate: '2024-07-30', order: 20, dependencies: [] },
-    { id: 't8', title: 'Initial data migration test run', projectId: 'p2', assigneeId: 'u4', status: TaskStatus.ToDo, dueDate: '2024-08-25', order: 30, dependencies: ['t5', 't6'] },
+    { id: 't5', title: 'Analyze data migration scripts', projectId: 'p2', assigneeId: 'u4', status: TaskStatus.InProgress, dueDate: '2024-08-15', order: 20, dependencies: [], reminder: '2_days_before', priority: TaskPriority.High },
+    { id: 't6', title: 'Configure test environment for CBS', projectId: 'p2', assigneeId: 'u5', status: TaskStatus.InProgress, dueDate: '2024-08-18', order: 30, dependencies: ['t7'], priority: TaskPriority.Medium },
+    { id: 't7', title: 'Procure new server hardware', projectId: 'p2', assigneeId: 'u1', status: TaskStatus.Done, dueDate: '2024-07-30', order: 20, dependencies: [], priority: TaskPriority.Medium },
+    { id: 't8', title: 'Initial data migration test run', projectId: 'p2', assigneeId: 'u4', status: TaskStatus.ToDo, dueDate: '2024-08-25', order: 30, dependencies: ['t5', 't6'], priority: TaskPriority.Low },
 
     // Project p3
-    { id: 't9', title: 'Integrate third-party ID verification SDK', projectId: 'p3', assigneeId: 'u2', status: TaskStatus.Done, dueDate: '2024-08-01', order: 30, dependencies: [] },
-    { id: 't10', title: 'Build admin verification portal', projectId: 'p3', assigneeId: 'u4', status: TaskStatus.InProgress, dueDate: '2024-08-22', order: 40, dependencies: ['t9'] },
-    { id: 't11', title: 'Draft compliance report', projectId: 'p3', assigneeId: 'u1', status: TaskStatus.ToDo, dueDate: '2024-08-28', order: 40, dependencies: ['t10'] },
-    { id: 't12', title: 'Perform security audit', projectId: 'p3', assigneeId: 'u2', status: TaskStatus.ToDo, dueDate: '2024-09-05', order: 50, dependencies: ['t11'] },
+    { id: 't9', title: 'Integrate third-party ID verification SDK', projectId: 'p3', assigneeId: 'u2', status: TaskStatus.Done, dueDate: '2024-08-01', order: 30, dependencies: [], priority: TaskPriority.Medium },
+    { id: 't10', title: 'Build admin verification portal', projectId: 'p3', assigneeId: 'u4', status: TaskStatus.InProgress, dueDate: '2024-08-22', order: 40, dependencies: ['t9'], priority: TaskPriority.Medium },
+    { id: 't11', title: 'Draft compliance report', projectId: 'p3', assigneeId: 'u1', status: TaskStatus.ToDo, dueDate: '2024-08-28', order: 40, dependencies: ['t10'], priority: TaskPriority.Low },
+    { id: 't12', title: 'Perform security audit', projectId: 'p3', assigneeId: 'u2', status: TaskStatus.ToDo, dueDate: '2024-09-05', order: 50, dependencies: ['t11'], priority: TaskPriority.High },
 ];
 
 export const COMMENTS: Comment[] = [

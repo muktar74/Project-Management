@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, Task, Project } from '../types';
+import { User, Task, Project, TaskPriority } from '../types';
 import { CloseIcon } from './icons';
 
 type CreateTaskModalProps = {
@@ -17,6 +17,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
   const [selectedProjectId, setSelectedProjectId] = useState(defaultProjectId || '');
   const [assigneeId, setAssigneeId] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [priority, setPriority] = useState<TaskPriority>(TaskPriority.Medium);
   const [error, setError] = useState('');
 
   const activeProjects = useMemo(() => projects.filter(p => p.status !== 'Completed'), [projects]);
@@ -38,6 +39,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
     const nextWeek = new Date();
     nextWeek.setDate(nextWeek.getDate() + 7);
     setDueDate(nextWeek.toISOString().split('T')[0]);
+    setPriority(TaskPriority.Medium);
     setError('');
   }, [defaultProjectId, activeProjects]);
 
@@ -85,6 +87,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
       description,
       assigneeId,
       dueDate,
+      priority,
     });
     onClose();
   };
@@ -163,6 +166,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
                 className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
               />
             </div>
+          </div>
+          <div>
+            <label htmlFor="task-priority" className="block text-sm font-medium text-neutral-700 mb-1">Priority</label>
+            <select
+                id="task-priority"
+                value={priority}
+                onChange={e => setPriority(e.target.value as TaskPriority)}
+                className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
+            >
+                {Object.values(TaskPriority).map(p => (
+                    <option key={p} value={p}>{p}</option>
+                ))}
+            </select>
           </div>
           <div className="mt-8 flex justify-end space-x-3 pt-4">
             <button

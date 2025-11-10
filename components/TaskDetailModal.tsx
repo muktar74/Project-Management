@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Task, Project, Comment, User, TaskStatus } from '../types';
-import { CloseIcon, CalendarIcon } from './icons';
+import { Task, Project, Comment, User, TaskStatus, ReminderType, TaskPriority } from '../types';
+import { CloseIcon, CalendarIcon, BellIcon } from './icons';
+import { formatRelativeTime } from '../utils/helpers';
 
 type TaskDetailModalProps = {
   show: boolean;
@@ -15,22 +16,19 @@ type TaskDetailModalProps = {
   onUpdateTask: (taskId: string, updates: Partial<Omit<Task, 'id'>>) => void;
 };
 
-const formatRelativeTime = (timestamp: string) => {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+const reminderOptions: { value: ReminderType | 'none'; label: string }[] = [
+    { value: 'none', label: 'No Reminder' },
+    { value: 'on_due_date', label: 'At time of due date' },
+    { value: '1_hour_before', label: '1 hour before' },
+    { value: '2_hours_before', label: '2 hours before' },
+    { value: '1_day_before', label: '1 day before' },
+    { value: '2_days_before', label: '2 days before' },
+];
 
-    const minutes = Math.floor(diffInSeconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 1) return `${days} days ago`;
-    if (days === 1) return `1 day ago`;
-    if (hours > 1) return `${hours} hours ago`;
-    if (hours === 1) return `1 hour ago`;
-    if (minutes > 1) return `${minutes} minutes ago`;
-    if (minutes <= 1) return `a minute ago`;
-    return 'just now';
+const getReminderText = (reminder: ReminderType | undefined) => {
+    if (!reminder) return 'No reminder set.';
+    const option = reminderOptions.find(opt => opt.value === reminder);
+    return `Reminder set for: ${option?.label.toLowerCase()}`;
 };
 
 
@@ -93,6 +91,16 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ show, onClose, task, 
       setNewComment('');
     }
   };
+  
+  const handleReminderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'none') {
+        const { reminder, ...taskWithoutReminder } = task;
+        onUpdateTask(task.id, { ...taskWithoutReminder, reminder: undefined });
+    } else {
+        onUpdateTask(task.id, { reminder: value as ReminderType });
+    }
+  };
 
   if (!show) {
     return null;
@@ -127,6 +135,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ show, onClose, task, 
                      <CalendarIcon className="w-5 h-5 mr-1.5 text-neutral-400" />
                      <span className="font-semibold">{new Date(task.dueDate).toLocaleDateString()}</span>
                 </div>
+                <div className="flex items-center">
+                    <span className="text-neutral-500 mr-2">Priority:</span>
+                    <select
+                        value={task.priority || TaskPriority.Medium}
+                        onChange={(e) => onUpdateTask(task.id, { priority: e.target.value as TaskPriority })}
+                        className="block w-full max-w-xs bg-white border border-neutral-300 rounded-md py-1 px-2 text-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent"
+                    >
+                        {Object.values(TaskPriority).map(p => (
+                            <option key={p} value={p}>{p}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
         </header>
 
@@ -137,6 +157,25 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ show, onClose, task, 
                     <p className="text-neutral-600 whitespace-pre-wrap">{task.description}</p>
                 </div>
             )}
+
+            <div className="mb-6">
+                <h3 className="font-semibold text-neutral-700 mb-2">Reminder</h3>
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center p-3 bg-neutral-50 rounded-lg flex-grow">
+                        <BellIcon className="w-5 h-5 text-neutral-500 mr-3 flex-shrink-0" />
+                        <span className="text-sm text-neutral-700">{getReminderText(task.reminder)}</span>
+                    </div>
+                    <select
+                        value={task.reminder || 'none'}
+                        onChange={handleReminderChange}
+                        className="block px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
+                    >
+                        {reminderOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
 
             <div className="border-t border-neutral-200 mt-6 pt-6">
                 <h3 className="font-semibold text-neutral-700 mb-4">Task Dependencies</h3>

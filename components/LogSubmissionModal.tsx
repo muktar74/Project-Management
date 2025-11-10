@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Project, Log, User } from '../types';
 import { CloseIcon } from './icons';
 
@@ -27,18 +27,11 @@ const LogSubmissionModal: React.FC<LogSubmissionModalProps> = ({ show, onClose, 
     return users.filter(u => selectedProject.team.includes(u.id) && u.id !== currentUserId);
   }, [projectId, projects, users, currentUserId]);
 
-  useEffect(() => {
-    if (projects.length > 0 && show) {
-      // Only set initial project when modal opens
-      if (!projectId) {
-         setProjectId(projects[0].id);
-      }
-    }
-  }, [projects, show, projectId]);
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (projects.length > 0) {
       setProjectId(projects[0].id);
+    } else {
+      setProjectId('');
     }
     setDate(new Date().toISOString().split('T')[0]);
     setYesterdaysTasks('');
@@ -46,7 +39,7 @@ const LogSubmissionModal: React.FC<LogSubmissionModalProps> = ({ show, onClose, 
     setChallenges('');
     setCollaboratorIds([]);
     setError('');
-  };
+  }, [projects]);
 
   const handleClose = () => {
     // Don't reset form fully on close, just close the modal
@@ -90,7 +83,7 @@ const LogSubmissionModal: React.FC<LogSubmissionModalProps> = ({ show, onClose, 
     if (show) {
       resetForm();
     }
-  }, [show]);
+  }, [show, resetForm]);
 
 
   if (!show) {

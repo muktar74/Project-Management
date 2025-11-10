@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Task, User, Project, TaskStatus } from '../types';
+import { Task, User, Project, TaskStatus, TaskPriority } from '../types';
 import { suggestNextTask } from '../services/geminiService';
-import { SparklesIcon, CloseIcon } from './icons';
+import { SparklesIcon, CloseIcon, ChevronUpIcon, ChevronDownIcon } from './icons';
 
 type MyTasksViewProps = {
   tasks: Task[];
   projects: Project[];
   currentUser: User;
 };
+
+type SortKey = 'title' | 'dueDate' | 'priority';
+type SortDirection = 'asc' | 'desc';
 
 const getStatusBadgeClass = (status: TaskStatus) => {
     switch (status) {
@@ -29,10 +32,28 @@ const formatTaskStatus = (status: TaskStatus) => {
     }
 };
 
+const getPriorityBadgeClass = (priority?: TaskPriority) => {
+    switch (priority) {
+        case TaskPriority.High: return 'bg-red-100 text-red-800';
+        case TaskPriority.Medium: return 'bg-yellow-100 text-yellow-800';
+        case TaskPriority.Low: return 'bg-green-100 text-green-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
+
+const priorityOrder: Record<TaskPriority, number> = {
+    [TaskPriority.High]: 1,
+    [TaskPriority.Medium]: 2,
+    [TaskPriority.Low]: 3,
+};
+
 const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser }) => {
   const [selectedProject, setSelectedProject] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDueDate, setSelectedDueDate] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState('all');
+  const [sortKey, setSortKey] = useState<SortKey>('dueDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [aiSuggestion, setAiSuggestion] = useState('');
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [error, setError] = useState('');
@@ -43,16 +64,45 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
   }, [tasks, projects, currentUser.id]);
 
   const myTasks = useMemo(() => {
-    return tasks
-        .filter(task => {
-            const isAssignee = task.assigneeId === currentUser.id;
-            const projectMatch = selectedProject === 'all' || task.projectId === selectedProject;
-            const statusMatch = selectedStatus === 'all' || task.status === selectedStatus;
-            const dueDateMatch = !selectedDueDate || task.dueDate === selectedDueDate;
-            return isAssignee && projectMatch && statusMatch && dueDateMatch;
-        })
-        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-  }, [tasks, currentUser.id, selectedProject, selectedStatus, selectedDueDate]);
+    const filteredTasks = tasks.filter(task => {
+        const isAssignee = task.assigneeId === currentUser.id;
+        const projectMatch = selectedProject === 'all' || task.projectId === selectedProject;
+        const statusMatch = selectedStatus === 'all' || task.status === selectedStatus;
+        const dueDateMatch = !selectedDueDate || task.dueDate === selectedDueDate;
+        const priorityMatch = selectedPriority === 'all' || task.priority === selectedPriority;
+        return isAssignee && projectMatch && statusMatch && dueDateMatch && priorityMatch;
+    });
+
+    return filteredTasks.sort((a, b) => {
+        let compareA: any;
+        let compareB: any;
+
+        switch(sortKey) {
+            case 'priority':
+                compareA = priorityOrder[a.priority || TaskPriority.Medium];
+                compareB = priorityOrder[b.priority || TaskPriority.Medium];
+                break;
+            case 'dueDate':
+                compareA = new Date(a.dueDate).getTime();
+                compareB = new Date(b.dueDate).getTime();
+                break;
+            case 'title':
+                compareA = a.title.toLowerCase();
+                compareB = b.title.toLowerCase();
+                break;
+            default:
+                return 0;
+        }
+
+        if (compareA < compareB) {
+            return sortDirection === 'asc' ? -1 : 1;
+        }
+        if (compareA > compareB) {
+            return sortDirection === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+  }, [tasks, currentUser.id, selectedProject, selectedStatus, selectedDueDate, selectedPriority, sortKey, sortDirection]);
 
   const openTasks = useMemo(() => myTasks.filter(t => t.status !== TaskStatus.Done), [myTasks]);
 
@@ -62,6 +112,16 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
     setSelectedProject('all');
     setSelectedStatus('all');
     setSelectedDueDate('');
+    setSelectedPriority('all');
+  };
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+        setSortKey(key);
+        setSortDirection('asc');
+    }
   };
 
   const handleGetSuggestion = async () => {
@@ -78,8 +138,21 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
     }
   };
 
+  const SortableHeader: React.FC<{ sortableKey: SortKey, children: React.ReactNode }> = ({ sortableKey, children }) => {
+    const isCurrentKey = sortKey === sortableKey;
+    return (
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort(sortableKey)}>
+            <div className="flex items-center">
+                {children}
+                {isCurrentKey ? (
+                    sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4 ml-1" /> : <ChevronDownIcon className="w-4 h-4 ml-1" />
+                ) : <div className="w-4 h-4 ml-1"></div>}
+            </div>
+        </th>
+    );
+  };
 
-  const filtersAreActive = selectedProject !== 'all' || selectedStatus !== 'all' || selectedDueDate !== '';
+  const filtersAreActive = selectedProject !== 'all' || selectedStatus !== 'all' || selectedDueDate !== '' || selectedPriority !== 'all';
 
   return (
     <div className="p-8">
@@ -102,14 +175,16 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
                 <CloseIcon className="w-5 h-5"/>
             </button>
             <h4 className="font-bold text-brand-primary mb-2">✨ AI Suggestion</h4>
-            <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: aiSuggestion.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
+            <div className="text-sm text-neutral-800 whitespace-pre-wrap">
+              {aiSuggestion}
+            </div>
          </div>
        )}
 
       <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-neutral-200">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <h3 className="text-lg font-semibold text-neutral-800 md:col-span-1 self-center">Filter My Tasks</h3>
-            <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                     <label htmlFor="project-filter-tasks" className="block text-sm font-medium text-neutral-600 mb-1">Project</label>
                     <select id="project-filter-tasks" value={selectedProject} onChange={e => setSelectedProject(e.target.value)} className="block w-full bg-white border border-neutral-300 rounded-md py-2 px-3 text-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent">
@@ -122,6 +197,13 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
                     <select id="status-filter-tasks" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} className="block w-full bg-white border border-neutral-300 rounded-md py-2 px-3 text-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent">
                         <option value="all">All Statuses</option>
                         {Object.values(TaskStatus).map(status => <option key={status} value={status}>{formatTaskStatus(status)}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="priority-filter-tasks" className="block text-sm font-medium text-neutral-600 mb-1">Priority</label>
+                    <select id="priority-filter-tasks" value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)} className="block w-full bg-white border border-neutral-300 rounded-md py-2 px-3 text-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent">
+                        <option value="all">All Priorities</option>
+                        {Object.values(TaskPriority).map(priority => <option key={priority} value={priority}>{priority}</option>)}
                     </select>
                 </div>
                 <div>
@@ -144,9 +226,10 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
         <table className="min-w-full divide-y divide-neutral-200">
           <thead className="bg-neutral-50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Task</th>
+              <SortableHeader sortableKey="title">Task</SortableHeader>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Project</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Due Date</th>
+              <SortableHeader sortableKey="dueDate">Due Date</SortableHeader>
+              <SortableHeader sortableKey="priority">Priority</SortableHeader>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
             </tr>
           </thead>
@@ -160,6 +243,11 @@ const MyTasksView: React.FC<MyTasksViewProps> = ({ tasks, projects, currentUser 
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{project?.name}</td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-neutral-500'}`}>
                     {new Date(task.dueDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityBadgeClass(task.priority)}`}>
+                        {task.priority || 'Medium'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(task.status)}`}>

@@ -61,6 +61,14 @@ export enum TaskStatus {
   Done = 'Done',
 }
 
+export enum TaskPriority {
+  High = 'High',
+  Medium = 'Medium',
+  Low = 'Low',
+}
+
+export type ReminderType = 'on_due_date' | '1_hour_before' | '2_hours_before' | '1_day_before' | '2_days_before';
+
 export interface Task {
     id: string;
     title: string;
@@ -71,6 +79,8 @@ export interface Task {
     dueDate: string;
     order: number;
     dependencies: string[]; // IDs of tasks that must be completed first
+    reminder?: ReminderType;
+    priority?: TaskPriority;
 }
 
 export interface Comment {

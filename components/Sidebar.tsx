@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DashboardIcon, BriefcaseIcon, CheckSquareIcon, SettingsIcon, ChartPieIcon, PencilAltIcon, LogoutIcon, CloseIcon, UsersIcon, BellIcon } from './icons';
 import { User, UserRole, Notification } from '../types';
+import { formatRelativeTime } from '../utils/helpers';
 
 type SidebarProps = {
   currentPage: string;
@@ -21,30 +22,13 @@ type NavItemProps = {
   onClick: () => void;
 };
 
-const formatRelativeTime = (timestamp: string) => {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-    const minutes = Math.floor(diffInSeconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 1) return `${days}d ago`;
-    if (days === 1) return `1d ago`;
-    if (hours > 1) return `${hours}h ago`;
-    if (hours === 1) return `1h ago`;
-    if (minutes > 1) return `${minutes}m ago`;
-    if (minutes <= 1) return `1m ago`;
-    return 'just now';
-};
-
 const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick }) => (
   <li
     onClick={onClick}
     className={`flex items-center px-3 border-b-2 transition-all duration-200 h-full cursor-pointer ${isActive ? 'text-white border-brand-accent' : 'text-neutral-300 hover:text-white border-transparent hover:border-white'}`}
   >
-    {React.cloneElement(icon, { className: 'w-5 h-5' })}
+    {/* Fix: Cast icon to React.ReactElement<any> to resolve TypeScript error with React.cloneElement. */}
+    {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-5 h-5' })}
     <span className="ml-2 font-medium text-sm">{label}</span>
   </li>
 );
@@ -54,7 +38,8 @@ const MobileNavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick 
       onClick={onClick}
       className={`flex items-center p-4 text-lg rounded-lg transition-all duration-200 cursor-pointer ${isActive ? 'bg-brand-secondary text-white' : 'text-neutral-200 hover:bg-brand-secondary hover:text-white'}`}
     >
-      {React.cloneElement(icon, { className: 'w-6 h-6' })}
+      {/* Fix: Cast icon to React.ReactElement<any> to resolve TypeScript error with React.cloneElement. */}
+      {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-6 h-6' })}
       <span className="ml-4 font-medium">{label}</span>
     </li>
 );

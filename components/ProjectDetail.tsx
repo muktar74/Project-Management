@@ -4,6 +4,7 @@ import { SparklesIcon, ArrowLeftIcon, PlusIcon, CalendarIcon, ExclamationIcon, P
 import { summarizeLogs } from '../services/geminiService';
 import CreateTaskModal from './CreateTaskModal';
 import TaskDetailModal from './TaskDetailModal';
+import ConfirmationModal from './ConfirmationModal';
 
 type ProjectDetailProps = {
   project: Project;
@@ -114,7 +115,10 @@ const TaskCard: React.FC<{
                         <span>{new Date(task.dueDate).toLocaleDateString()}</span>
                     </div>
                     {isBlocked && (
-                        <LockClosedIcon className="w-4 h-4 text-neutral-500" title="This task is blocked by dependencies." />
+                        // Fix: Wrapped LockClosedIcon in a span to apply the title attribute, as the component does not accept it directly.
+                        <span title="This task is blocked by dependencies.">
+                            <LockClosedIcon className="w-4 h-4 text-neutral-500" />
+                        </span>
                     )}
                 </div>
                 <div className="flex items-center space-x-3">
@@ -226,6 +230,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'project' | 'task', item: Project | Task } | null>(null);
 
 
   const projectTasks = useMemo(() => tasks.filter(task => task.projectId === project.id), [tasks, project.id]);
@@ -250,16 +255,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
     }
   }, [projectLogs, users, project.name]);
 
-  const handleDeleteProject = () => {
-    if (window.confirm(`Are you sure you want to delete the project "${project.name}"? This action cannot be undone.`)) {
-        onProjectDelete(project.id);
-    }
+  const handleDeleteRequest = (type: 'project' | 'task', item: Project | Task) => {
+    setItemToDelete({ type, item });
   };
 
-  const handleTaskDeleteConfirm = (task: Task) => {
-    if (window.confirm(`Are you sure you want to delete the task "${task.title}"? This action cannot be undone.`)) {
-        onTaskDelete(task.id);
+  const handleConfirmDelete = () => {
+    if (!itemToDelete) return;
+    if (itemToDelete.type === 'project') {
+      onProjectDelete(itemToDelete.item.id);
+    } else {
+      onTaskDelete(itemToDelete.item.id);
     }
+    setItemToDelete(null);
   };
 
   const getDropTargetTaskId = (e: React.DragEvent<HTMLDivElement>): string | null => {
@@ -342,7 +349,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                         <button onClick={() => onProjectUpdate(project)} className="p-2 rounded-lg text-neutral-600 bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors">
                             <PencilAltIcon className="w-5 h-5"/>
                         </button>
-                        <button onClick={handleDeleteProject} className="p-2 rounded-lg text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
+                        <button onClick={() => handleDeleteRequest('project', project)} className="p-2 rounded-lg text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
                             <TrashIcon className="w-5 h-5"/>
                         </button>
                     </>
@@ -371,7 +378,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 onTaskDragStart={handleDragStart}
                 onTaskDragEnd={handleDragEnd}
                 onTaskClick={setSelectedTask}
-                onTaskDelete={handleTaskDeleteConfirm}
+                onTaskDelete={(task) => handleDeleteRequest('task', task)}
                 draggedTaskId={draggedTaskId}
             />
             <BoardColumn 
@@ -390,7 +397,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 onTaskDragStart={handleDragStart}
                 onTaskDragEnd={handleDragEnd}
                 onTaskClick={setSelectedTask}
-                onTaskDelete={handleTaskDeleteConfirm}
+                onTaskDelete={(task) => handleDeleteRequest('task', task)}
                 draggedTaskId={draggedTaskId}
             />
             <BoardColumn 
@@ -409,7 +416,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 onTaskDragStart={handleDragStart}
                 onTaskDragEnd={handleDragEnd}
                 onTaskClick={setSelectedTask}
-                onTaskDelete={handleTaskDeleteConfirm}
+                onTaskDelete={(task) => handleDeleteRequest('task', task)}
                 draggedTaskId={draggedTaskId}
             />
             <BoardColumn 
@@ -428,7 +435,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
                 onTaskDragStart={handleDragStart}
                 onTaskDragEnd={handleDragEnd}
                 onTaskClick={setSelectedTask}
-                onTaskDelete={handleTaskDeleteConfirm}
+                onTaskDelete={(task) => handleDeleteRequest('task', task)}
                 draggedTaskId={draggedTaskId}
             />
        </div>
@@ -454,6 +461,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, projects, users,
             onAddComment={onCommentAdd}
             allTasksInProject={projectTasks}
             onUpdateTask={onUpdateTask}
+        />
+       )}
+       {itemToDelete && (
+        <ConfirmationModal
+            show={!!itemToDelete}
+            onClose={() => setItemToDelete(null)}
+            onConfirm={handleConfirmDelete}
+            title={`Delete ${itemToDelete.type}`}
+            message={`Are you sure you want to delete this ${itemToDelete.type}: "${'name' in itemToDelete.item ? itemToDelete.item.name : itemToDelete.item.title}"? This action cannot be undone.`}
         />
        )}
     </div>

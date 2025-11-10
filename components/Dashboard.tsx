@@ -84,10 +84,21 @@ const DailyLogStatus: React.FC<{
 
 const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, currentUser, onProjectSelect, onOpenEditModal, membersForDailyStatus, onSendReminder }) => {
     const totalProjects = projects.length;
-    const completedProjects = projects.filter(p => p.status === ProjectStatus.Completed).length;
     const onTrackProjects = projects.filter(p => p.status === ProjectStatus.OnTrack).length;
     const atRiskProjects = projects.filter(p => p.status === ProjectStatus.AtRisk).length;
     
+    const { overdueTasks, dueTodayTasks } = useMemo(() => {
+        const myTasks = tasks.filter(t => t.assigneeId === currentUser.id && t.status !== TaskStatus.Done);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const overdue = myTasks.filter(t => new Date(t.dueDate) < today);
+        const dueToday = myTasks.filter(t => t.dueDate === todayStr);
+
+        return { overdueTasks: overdue.length, dueTodayTasks: dueToday.length };
+    }, [tasks, currentUser.id]);
+
     const userProjects = projects.filter(p => p.team.includes(currentUser.id));
     const upcomingTasks = tasks
         .filter(t => t.assigneeId === currentUser.id && t.status !== TaskStatus.Done)
@@ -96,8 +107,6 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, cur
         
     const projectHoursData = useMemo(() => {
         const projectLogHours = projects.map(project => {
-            // This calculation is no longer possible as 'hours' is removed.
-            // I'll count number of log entries instead.
             const logCount = logs.filter(log => log.projectId === project.id).length;
             return { name: project.name, "logs": logCount };
         });
@@ -117,8 +126,8 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, logs, tasks, users, cur
             </header>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="My Focus" value={`${overdueTasks} / ${dueTodayTasks}`} subtext="Overdue / Due Today" />
                 <StatCard title="Total Projects" value={totalProjects} subtext="All active and completed" />
-                <StatCard title="Completed" value={completedProjects} subtext="Successfully delivered" />
                 <StatCard title="On Track" value={onTrackProjects} subtext="Proceeding as planned" />
                 <StatCard title="At Risk" value={atRiskProjects} subtext="Require attention" />
             </div>
