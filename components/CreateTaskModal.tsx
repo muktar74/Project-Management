@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, Task, Project, TaskPriority } from '../types';
-import { CloseIcon } from './icons';
+import { User, Task, Project, TaskPriority, ReminderType } from '../types.ts';
+import { CloseIcon } from './icons.tsx';
 
 type CreateTaskModalProps = {
   show: boolean;
@@ -11,6 +11,16 @@ type CreateTaskModalProps = {
   defaultProjectId?: string;
 };
 
+const reminderOptions: { value: ReminderType | 'none'; label: string }[] = [
+    { value: 'none', label: 'No Reminder' },
+    { value: 'on_due_date', label: 'At time of due date' },
+    { value: '1_hour_before', label: '1 hour before' },
+    { value: '2_hours_before', label: '2 hours before' },
+    { value: '1_day_before', label: '1 day before' },
+    { value: '2_days_before', label: '2 days before' },
+];
+
+
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubmit, projects, users, defaultProjectId }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -18,6 +28,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
   const [assigneeId, setAssigneeId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.Medium);
+  const [reminder, setReminder] = useState<ReminderType | 'none'>('none');
   const [error, setError] = useState('');
 
   const activeProjects = useMemo(() => projects.filter(p => p.status !== 'Completed'), [projects]);
@@ -40,6 +51,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
     nextWeek.setDate(nextWeek.getDate() + 7);
     setDueDate(nextWeek.toISOString().split('T')[0]);
     setPriority(TaskPriority.Medium);
+    setReminder('none');
     setError('');
   }, [defaultProjectId, activeProjects]);
 
@@ -81,14 +93,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
         return;
     }
 
-    onSubmit({
+    const taskData: Omit<Task, 'id' | 'status' | 'order' | 'dependencies'> = {
       projectId: selectedProjectId,
       title,
       description,
       assigneeId,
       dueDate,
       priority,
-    });
+    };
+    
+    if (reminder !== 'none') {
+        taskData.reminder = reminder as ReminderType;
+    }
+
+    onSubmit(taskData);
     onClose();
   };
 
@@ -167,18 +185,33 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ show, onClose, onSubm
               />
             </div>
           </div>
-          <div>
-            <label htmlFor="task-priority" className="block text-sm font-medium text-neutral-700 mb-1">Priority</label>
-            <select
-                id="task-priority"
-                value={priority}
-                onChange={e => setPriority(e.target.value as TaskPriority)}
-                className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
-            >
-                {Object.values(TaskPriority).map(p => (
-                    <option key={p} value={p}>{p}</option>
-                ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label htmlFor="task-priority" className="block text-sm font-medium text-neutral-700 mb-1">Priority</label>
+                <select
+                    id="task-priority"
+                    value={priority}
+                    onChange={e => setPriority(e.target.value as TaskPriority)}
+                    className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
+                >
+                    {Object.values(TaskPriority).map(p => (
+                        <option key={p} value={p}>{p}</option>
+                    ))}
+                </select>
+            </div>
+            <div>
+                <label htmlFor="task-reminder" className="block text-sm font-medium text-neutral-700 mb-1">Reminder</label>
+                <select
+                    id="task-reminder"
+                    value={reminder}
+                    onChange={e => setReminder(e.target.value as ReminderType | 'none')}
+                    className="block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm text-neutral-900 focus:outline-none focus:ring-brand-accent focus:border-brand-accent sm:text-sm"
+                >
+                    {reminderOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
+            </div>
           </div>
           <div className="mt-8 flex justify-end space-x-3 pt-4">
             <button

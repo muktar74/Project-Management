@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { Project, Log, User, ProjectStatus, Task, TaskStatus, UserRole } from '../types';
+import { Project, Log, User, ProjectStatus, Task, TaskStatus, UserRole } from '../types.ts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import ProjectCard from './ProjectCard';
-import { EnvelopeIcon } from './icons';
+import ProjectCard from './ProjectCard.tsx';
+import { EnvelopeIcon } from './icons.tsx';
 
 type DashboardProps = {
   projects: Project[];

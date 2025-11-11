@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Task, User, Project, TaskStatus, TaskPriority } from '../types';
-import { suggestNextTask } from '../services/geminiService';
-import { SparklesIcon, CloseIcon, ChevronUpIcon, ChevronDownIcon } from './icons';
+import { Task, User, Project, TaskStatus, TaskPriority } from '../types.ts';
+import { suggestNextTask } from '../services/geminiService.ts';
+import { SparklesIcon, CloseIcon, ChevronUpIcon, ChevronDownIcon } from './icons.tsx';
 
 type MyTasksViewProps = {
   tasks: Task[];

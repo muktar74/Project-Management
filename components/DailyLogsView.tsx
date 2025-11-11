@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Log, User, Project } from '../types';
-import { CalendarIcon, ExclamationIcon, UsersIcon } from './icons';
+import { Log, User, Project } from '../types.ts';
+import { CalendarIcon, ExclamationIcon, UsersIcon } from './icons.tsx';
 
 type DailyLogsViewProps = {
   logs: Log[];

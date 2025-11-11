@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User } from '../types';
-import { CloseIcon } from './icons';
+import { User } from '../types.ts';
+import { CloseIcon } from './icons.tsx';
 
 type SendNotificationModalProps = {
   show: boolean;

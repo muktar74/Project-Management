@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { DashboardIcon, BriefcaseIcon, CheckSquareIcon, SettingsIcon, ChartPieIcon, PencilAltIcon, LogoutIcon, CloseIcon, UsersIcon, BellIcon } from './icons';
-import { User, UserRole, Notification } from '../types';
-import { formatRelativeTime } from '../utils/helpers';
+import { DashboardIcon, BriefcaseIcon, CheckSquareIcon, SettingsIcon, ChartPieIcon, PencilAltIcon, LogoutIcon, CloseIcon, UsersIcon, BellIcon } from './icons.tsx';
+import { User, UserRole, Notification } from '../types.ts';
+import { formatRelativeTime } from '../utils/helpers.ts';
 
 type SidebarProps = {
   currentPage: string;

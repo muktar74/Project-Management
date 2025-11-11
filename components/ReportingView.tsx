@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Project, Task, User, ProjectStatus, TaskStatus } from '../types';
+import { Project, Task, User, ProjectStatus, TaskStatus } from '../types.ts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 type ReportingViewProps = {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Project, User, UserRole, ProjectStatus } from '../types';
-import { CloseIcon } from './icons';
+import { Project, User, UserRole, ProjectStatus } from '../types.ts';
+import { CloseIcon } from './icons.tsx';
 
 type ProjectModalProps = {
   show: boolean;

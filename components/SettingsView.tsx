@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserSettings, UserRole } from '../types';
-import { PencilAltIcon } from './icons';
+import { User, UserSettings, UserRole } from '../types.ts';
+import { PencilAltIcon } from './icons.tsx';
 
 type SettingsViewProps = {
   currentUser: User;

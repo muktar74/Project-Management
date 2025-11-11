@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Log, User, Task, Project } from "../types";
+import { Log, User, Task, Project } from "../types.ts";
 
 // Fix: Aligned with @google/genai coding guidelines.
 // Removed API key checks and initialized the client directly with the environment variable.

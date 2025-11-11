@@ -1,6 +1,6 @@
 import React from 'react';
-import { Project, User, ProjectStatus, Task, TaskStatus, UserRole } from '../types';
-import { CheckSquareIcon, PencilAltIcon } from './icons';
+import { Project, User, ProjectStatus, Task, TaskStatus, UserRole } from '../types.ts';
+import { CheckSquareIcon, PencilAltIcon } from './icons.tsx';
 
 type ProjectCardProps = {
   project: Project;

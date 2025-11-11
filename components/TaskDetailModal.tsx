@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Task, Project, Comment, User, TaskStatus, ReminderType, TaskPriority } from '../types';
-import { CloseIcon, CalendarIcon, BellIcon } from './icons';
-import { formatRelativeTime } from '../utils/helpers';
+import { Task, Project, Comment, User, TaskStatus, ReminderType, TaskPriority } from '../types.ts';
+import { CloseIcon, CalendarIcon, BellIcon } from './icons.tsx';
+import { formatRelativeTime } from '../utils/helpers.ts';
 
 type TaskDetailModalProps = {
   show: boolean;

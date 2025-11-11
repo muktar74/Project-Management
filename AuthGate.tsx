@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import App from './App';
-import LoginScreen from './components/LoginScreen';
-import { User } from './types';
-import { USERS } from './data';
+import App from './App.tsx';
+import LoginScreen from './components/LoginScreen.tsx';
+import { User } from './types.ts';
+import { USERS } from './data.ts';
 
 const AuthGate: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

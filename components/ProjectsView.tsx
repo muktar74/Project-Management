@@ -1,7 +1,7 @@
 import React from 'react';
-import { Project, User, Task, UserRole } from '../types';
-import ProjectCard from './ProjectCard';
-import { PlusIcon } from './icons';
+import { Project, User, Task, UserRole } from '../types.ts';
+import ProjectCard from './ProjectCard.tsx';
+import { PlusIcon } from './icons.tsx';
 
 type ProjectsViewProps = {
     projects: Project[];

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloseIcon, ExclamationIcon } from './icons';
+import { CloseIcon, ExclamationIcon } from './icons.tsx';
 
 type ConfirmationModalProps = {
   show: boolean;

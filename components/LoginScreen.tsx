@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User } from '../types';
-import { ExclamationIcon, EnvelopeIcon, LockClosedIcon, GoogleIcon, MicrosoftIcon } from './icons';
+import { User } from '../types.ts';
+import { ExclamationIcon, EnvelopeIcon, LockClosedIcon, GoogleIcon, MicrosoftIcon } from './icons.tsx';
 
 type LoginScreenProps = {
   users: User[];

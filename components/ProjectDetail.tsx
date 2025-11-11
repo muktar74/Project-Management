@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Project, User, Log, ProjectStatus, Task, TaskStatus, UserRole, Comment } from '../types';
-import { SparklesIcon, ArrowLeftIcon, PlusIcon, CalendarIcon, ExclamationIcon, PencilAltIcon, TrashIcon, ChatAltIcon, LockClosedIcon, LinkIcon } from './icons';
-import { summarizeLogs } from '../services/geminiService';
-import CreateTaskModal from './CreateTaskModal';
-import TaskDetailModal from './TaskDetailModal';
-import ConfirmationModal from './ConfirmationModal';
+import { Project, User, Log, ProjectStatus, Task, TaskStatus, UserRole, Comment } from '../types.ts';
+import { SparklesIcon, ArrowLeftIcon, PlusIcon, CalendarIcon, ExclamationIcon, PencilAltIcon, TrashIcon, ChatAltIcon, LockClosedIcon, LinkIcon } from './icons.tsx';
+import { summarizeLogs } from '../services/geminiService.ts';
+import CreateTaskModal from './CreateTaskModal.tsx';
+import TaskDetailModal from './TaskDetailModal.tsx';
+import ConfirmationModal from './ConfirmationModal.tsx';
 
 type ProjectDetailProps = {
   project: Project;

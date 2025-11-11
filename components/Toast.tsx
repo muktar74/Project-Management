@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ToastMessage } from '../contexts/ToastContext';
-import { CheckCircleIcon, XCircleIcon, InformationCircleIcon, CloseIcon } from './icons';
+import { ToastMessage } from '../contexts/ToastContext.tsx';
+import { CheckCircleIcon, XCircleIcon, InformationCircleIcon, CloseIcon } from './icons.tsx';
 
 type ToastProps = {
   toast: ToastMessage;

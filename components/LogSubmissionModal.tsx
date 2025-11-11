@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Project, Log, User } from '../types';
-import { CloseIcon } from './icons';
+import { Project, Log, User } from '../types.ts';
+import { CloseIcon } from './icons.tsx';
 
 type LogSubmissionModalProps = {
   show: boolean;

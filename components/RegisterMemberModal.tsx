@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User, UserRole } from '../types';
-import { CloseIcon } from './icons';
+import { User, UserRole } from '../types.ts';
+import { CloseIcon } from './icons.tsx';
 
 type RegisterMemberModalProps = {
   show: boolean;

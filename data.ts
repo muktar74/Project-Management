@@ -1,4 +1,4 @@
-import { User, Project, Log, UserRole, ProjectStatus, Task, TaskStatus, Comment, Notification, TaskPriority } from './types';
+import { User, Project, Log, UserRole, ProjectStatus, Task, TaskStatus, Comment, Notification, TaskPriority } from './types.ts';
 
 export const USERS: User[] = [
   { 

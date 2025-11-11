@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { User, Task, Log, TaskStatus, UserRole } from '../types';
+import { User, Task, Log, TaskStatus, UserRole } from '../types.ts';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
-import { CheckSquareIcon, ExclamationIcon, UsersIcon, UserAddIcon } from './icons';
+import { CheckSquareIcon, ExclamationIcon, UsersIcon, UserAddIcon } from './icons.tsx';
 
 type TeamViewProps = {
   teamMembers: User[];
